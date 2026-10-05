@@ -19,6 +19,7 @@ import {
 
 import { decodeCafeWords } from "./src/cafe-decoder.js";
 import { StudyLogger } from "./src/study-logger.js";
+import { getRuntimePolicy } from "./src/runtime-policy.js";
 
 const $ = id => document.getElementById(id);
 
@@ -76,8 +77,6 @@ let minScoreShow = 0.70;
 let minScoreLock = 0.75;
 let minMargin = 0.20;
 const MIN_GESTURE_FRAMES = 15;
-const NO_HAND_END_FRAMES = 8;
-const COOLDOWN_MS = 1500;
 const LOCK_HOLD_MS = 700;
 
 let LIVE_BUFFER_MAX = 100;
@@ -351,7 +350,8 @@ function predictWebcam() {
 
       let handUpdated = false;
       handFrameCount++;
-      const handStride = featureMode === "v2" ? 1 : 3;
+      const policy = getRuntimePolicy(featureMode, v2FeatureProfile);
+    const handStride = policy.handStride;
       if (handFrameCount % handStride === 0) {
         try {
           lastHandResults = handLandmarker.detectForVideo(video, frameTimestampMs);
@@ -374,7 +374,7 @@ function predictWebcam() {
         }
       }
 
-      if (featureMode === "v1" || handUpdated) {
+      if (policy.sampleEveryVideoFrame || handUpdated) {
         try {
           updateGestureBuffer(lastHandResults, lastFaceResults);
         } catch (error) {
@@ -448,7 +448,8 @@ function updateGestureBuffer(handResults, faceResults) {
   } else {
     noHandCount++;
     resetLock();
-    if (noHandCount >= NO_HAND_END_FRAMES) {
+    const policy = getRuntimePolicy(featureMode, v2FeatureProfile);
+    if (noHandCount >= policy.noHandEndFrames) {
       if (gestureBuffer.length >= MIN_GESTURE_FRAMES) {
         void classifyGesture();
       } else {
@@ -556,6 +557,13 @@ function applyLivePrediction(result) {
     `신뢰도 ${(result.score * 100).toFixed(1)}% · 마진 ${(result.margin * 100).toFixed(1)}%`;
   holdBarFill.style.width = `${Math.round(result.score * 100)}%`;
 
+  const policy = getRuntimePolicy(featureMode, v2FeatureProfile);
+  if (!policy.autoLockWhileHandVisible) {
+    resetLock();
+    holdStatus.textContent = "동작을 끝낸 뒤 손을 잠깐 내리면 확정됩니다";
+    return;
+  }
+
   if (!isLockable(result)) {
     resetLock();
     holdStatus.textContent = "손을 내리면 최종 확인합니다";
@@ -632,7 +640,8 @@ async function classifyGesture() {
     gestureState = "cooldown";
     holdStatus.textContent = "모델 추론 오류 — 다시 시도해주세요";
   } finally {
-    setTimeout(resetGesture, COOLDOWN_MS);
+    const policy = getRuntimePolicy(featureMode, v2FeatureProfile);
+    setTimeout(resetGesture, policy.cooldownMs);
   }
 }
 
@@ -689,7 +698,10 @@ function resetGesture() {
   noHandCount = 0;
   resetLock();
   holdBarFill.style.width = "0%";
-  holdStatus.textContent = "손을 카메라에 보여주세요";
+  const policy = getRuntimePolicy(featureMode, v2FeatureProfile);
+  holdStatus.textContent = policy.id === "v2-base8-legacy-collector"
+    ? "수어 후 손을 잠깐 내리면 단어가 확정됩니다"
+    : "손을 카메라에 보여주세요";
 }
 
 function addWord() {
