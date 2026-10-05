@@ -337,24 +337,34 @@ function predictWebcam() {
 
   if (video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
-    inferCtx.drawImage(video, 0, 0, 640, 480);
+    // Use the live <video> frame directly for MediaPipe VIDEO mode.
+    // This avoids stale canvas-frame tracking on some Chromium/macOS combinations.
+    // video.currentTime is guaranteed to advance here because of the guard above.
+    const frameTimestampMs = video.currentTime * 1000;
 
     let handUpdated = false;
     handFrameCount++;
-    const handStride = featureMode === "v2" ? 2 : 3;
+    const handStride = featureMode === "v2" ? 1 : 3;
     if (handFrameCount % handStride === 0) {
-      lastHandResults = handLandmarker.detectForVideo(inferCanvas, now);
-      handUpdated = true;
-      const cur = lastHandResults?.landmarks?.length ?? 0;
-      if (cur !== latestHandCount) {
+      try {
+        lastHandResults = handLandmarker.detectForVideo(video, frameTimestampMs);
+        handUpdated = true;
+        const cur = lastHandResults?.landmarks?.length ?? 0;
         latestHandCount = cur;
         handStatus.textContent = cur > 0 ? `손 감지됨: ${cur}개` : "손 감지되지 않음";
+      } catch (error) {
+        console.error("hand detectForVideo", error);
+        handStatus.textContent = "손 추적 오류";
       }
     }
 
     faceFrameCount++;
     if (faceFrameCount % 6 === 0) {
-      lastFaceResults = faceLandmarker.detectForVideo(inferCanvas, now);
+      try {
+        lastFaceResults = faceLandmarker.detectForVideo(video, frameTimestampMs);
+      } catch (error) {
+        console.error("face detectForVideo", error);
+      }
     }
 
     // v1 keeps the legacy temporal sampling used by the original project.
