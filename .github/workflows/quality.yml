@@ -1,0 +1,41 @@
+name: Quality checks
+
+on:
+  push:
+    branches:
+      - contest-2026-onnx
+  pull_request:
+
+jobs:
+  syntax-and-feature-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: JavaScript syntax
+        run: |
+          node --check script.js
+          node --check collector.js
+          node --check benchmark.js
+          node --check src/feature-schema.js
+          node --check src/inference-engine.js
+          node --check src/cafe-decoder.js
+
+      - name: JavaScript feature smoke test
+        run: node tests/feature_smoke.mjs
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python syntax
+        run: python -m py_compile training/*.py tools/*.py
+
+      - name: Python feature self-test
+        run: |
+          python -m pip install "numpy>=1.26,<3"
+          python training/features.py
