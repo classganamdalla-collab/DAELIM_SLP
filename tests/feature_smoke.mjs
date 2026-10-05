@@ -29,9 +29,24 @@ const x = extractV2FeaturesFromRawFrame({
 assert.equal(x.length, FEATURE_SCHEMAS.v2.featureDim);
 assert.ok(x.every(Number.isFinite));
 
-const phrase = decodeCafeWords(["아이스", "아메리카노", "2잔", "테이크아웃"]);
-assert.match(phrase, /아메리카노/);
-assert.match(phrase, /두 잔/);
-assert.match(phrase, /테이크아웃/);
+const cases = [
+  [["아이스", "아메리카노", "주세요"], /아이스 아메리카노 주세요/],
+  [["뜨거운", "아메리카노", "주세요"], /따뜻한 아메리카노 주세요/],
+  [["아메리카노", "2잔", "주세요"], /아메리카노 두 잔 주세요/],
+  [["제일", "큰걸로", "주세요"], /제일 큰 사이즈로 주세요/],
+  [["테이크아웃", "해주세요"], /테이크아웃으로 해주세요/],
+  [["카드"], /카드로 결제할게요/],
+  [["영수증"], /영수증 주세요/],
+  [["와이파이", "있나요"], /와이파이 있나요/],
+  [["감사합니다"], /감사합니다/],
+];
 
-console.log("JS feature/decoder smoke test OK", x.length, phrase);
+for (const [tokens, expected] of cases) {
+  const phrase = decodeCafeWords(tokens);
+  assert.match(phrase, expected, `${tokens.join(" / ")} -> ${phrase}`);
+}
+
+// Unknown/non-domain input must not be hallucinated into a cafe phrase.
+assert.equal(decodeCafeWords(["임의표현"]), "임의표현");
+
+console.log("JS feature/decoder smoke test OK", x.length);
