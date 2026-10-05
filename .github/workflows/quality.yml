@@ -35,9 +35,13 @@ jobs:
           node --check pilot-survey.js
           node --check tests/feature_smoke.mjs
           node --check tests/feature_parity.mjs
+          node --check tests/runtime_policy.mjs
 
       - name: JavaScript feature and decoder smoke test
         run: node tests/feature_smoke.mjs
+
+      - name: Runtime sampling and segmentation policy
+        run: node tests/runtime_policy.mjs
 
       - uses: actions/setup-python@v5
         with:
