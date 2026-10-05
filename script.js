@@ -88,6 +88,8 @@ let faceLandmarker = null;
 let drawingUtils = null;
 let inferenceEngine = null;
 let modelMeta = null;
+let enginePreference = "auto";
+let runtimeFallbackUsed = false;
 
 let webcamRunning = false;
 let lastVideoTime = -1;
@@ -151,6 +153,7 @@ function renderLabelChips() {
 
 async function loadModelStack() {
   const preference = pageParams.get("engine") || "auto";
+  enginePreference = preference;
   datasetStatus.textContent = "AI 모델 로딩 중...";
   modelBadge.textContent = "AI 모델 로딩 중...";
 
@@ -190,9 +193,48 @@ async function loadModelStack() {
     minScoreLock = Math.min(0.98, Math.max(minScoreShow + 0.05, minScoreShow));
   }
 
+  await validateEngineContract();
+
   datasetStatus.textContent = `AI 모델 준비 완료: ${inferenceEngine.name}`;
   engineStatus.textContent = `${inferenceEngine.name} · ${featureMode === "v2" ? FEATURE_SCHEMAS.v2.id : FEATURE_SCHEMAS.v1.id}`;
   modelBadge.textContent = `준비 완료 · ${inferenceEngine.name}`;
+}
+
+async function validateEngineContract() {
+  const expectedClasses = targetLabels.length;
+  const data = new Float32Array(LIVE_BUFFER_MAX * featureDim);
+  const probs = await inferenceEngine.predict(data, [1, LIVE_BUFFER_MAX, featureDim]);
+
+  if (probs.length !== expectedClasses) {
+    throw new Error(`모델 출력 클래스 불일치: expected=${expectedClasses}, got=${probs.length}`);
+  }
+  if (!Array.from(probs).every(Number.isFinite)) {
+    throw new Error("모델 출력에 NaN/Infinity가 있습니다.");
+  }
+  const sum = Array.from(probs).reduce((a, b) => a + b, 0);
+  if (!(sum > 0.8 && sum < 1.2)) {
+    throw new Error(`softmax 출력 합이 비정상입니다: ${sum}`);
+  }
+}
+
+async function fallbackToTfjsAfterRuntimeError(error) {
+  if (
+    runtimeFallbackUsed ||
+    featureMode !== "v1" ||
+    String(enginePreference).toLowerCase() !== "auto" ||
+    inferenceEngine?.kind !== "onnx"
+  ) {
+    throw error;
+  }
+
+  runtimeFallbackUsed = true;
+  console.warn("ONNX runtime inference failed; switching to TensorFlow.js", error);
+  engineStatus.textContent = "ONNX 오류 · TensorFlow.js 전환 중...";
+
+  inferenceEngine = await createV1Engine("tfjs");
+  await validateEngineContract();
+  engineStatus.textContent = `${inferenceEngine.name} · fallback`;
+  modelBadge.textContent = `호환 모드 · ${inferenceEngine.name}`;
 }
 
 async function createLandmarkers() {
@@ -427,7 +469,13 @@ async function inferFrames(frames) {
   if (!inferenceEngine || frames.length < MIN_GESTURE_FRAMES) return null;
   const data = makeModelInput(frames);
   const t0 = performance.now();
-  const probs = await inferenceEngine.predict(data, [1, LIVE_BUFFER_MAX, featureDim]);
+  let probs;
+  try {
+    probs = await inferenceEngine.predict(data, [1, LIVE_BUFFER_MAX, featureDim]);
+  } catch (error) {
+    await fallbackToTfjsAfterRuntimeError(error);
+    probs = await inferenceEngine.predict(data, [1, LIVE_BUFFER_MAX, featureDim]);
+  }
   const latency = performance.now() - t0;
   studyLogger.recordInferenceLatency(latency);
   if (studyLogger.enabled && studyLogger.inferenceLatencies.length % 12 === 0) {
