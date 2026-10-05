@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 
-ROOT = Path(__file__).resolve().parents[1]
+# CI smoke-test entrypoint; this file change triggers the ONNX workflow.\nROOT = Path(__file__).resolve().parents[1]
 FP32 = ROOT / "model" / "onnx" / "sign_language_fp32.onnx"
 INT8 = ROOT / "model" / "onnx" / "sign_language_int8.onnx"
 
