@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+# Branch CI entrypoint: changing this file intentionally triggers the ONNX build workflow.\nROOT = Path(__file__).resolve().parents[1]
 H5_MODEL = ROOT / "model" / "sign_language_model.h5"
 OUT_DIR = ROOT / "model" / "onnx"
 FP32_MODEL = OUT_DIR / "sign_language_fp32.onnx"
