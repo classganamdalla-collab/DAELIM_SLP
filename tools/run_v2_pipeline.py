@@ -23,6 +23,11 @@ def main() -> None:
     ap.add_argument("--bootstrap-samples", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=20261005)
     ap.add_argument("--no-augment", action="store_true")
+    ap.add_argument(
+        "--feature-profile",
+        choices=["full", "base8"],
+        default="full",
+    )
     args = ap.parse_args()
 
     py = sys.executable
@@ -37,6 +42,7 @@ def main() -> None:
         "--min-class-samples", str(args.min_class_samples),
         "--bootstrap-samples", str(args.bootstrap_samples),
         "--seed", str(args.seed),
+        "--feature-profile", args.feature_profile,
     ]
     if args.no_augment:
         train.append("--no-augment")
