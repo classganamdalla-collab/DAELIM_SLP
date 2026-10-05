@@ -115,7 +115,15 @@ export function cloneFaceDataFromResults(faceResults) {
   }
 
   const blendshapes = {};
-  for (const cat of faceResults?.faceBlendshapes?.[0] ?? []) {
+  const rawBlendshapeHead = faceResults?.faceBlendshapes?.[0];
+  // MediaPipe Tasks Vision may expose a face blendshape head either as a
+  // direct Category[] or as a Classifications object with .categories.
+  // Support both shapes so live browser results match collector/runtime tests.
+  const blendshapeCategories = Array.isArray(rawBlendshapeHead)
+    ? rawBlendshapeHead
+    : (rawBlendshapeHead?.categories ?? []);
+
+  for (const cat of blendshapeCategories) {
     const name = cat?.categoryName ?? cat?.displayName;
     if (name) blendshapes[name] = finite(cat.score);
   }
