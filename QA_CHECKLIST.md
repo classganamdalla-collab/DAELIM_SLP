@@ -108,3 +108,23 @@
 - [ ] 한국수어를 교정 대상으로 표현하지 않는다.
 - [ ] 실제 참여자가 수어 학습자라면 임상적 효과로 일반화하지 않는다.
 - [ ] 생성형 AI 문장 자연화가 구현되지 않았다면 구현됐다고 쓰지 않는다.
+
+
+## K. 자동 CI 확인
+
+- [ ] `Quality checks` 최신 run이 성공한다.
+- [ ] JS café decoder 테스트가 성공한다.
+- [ ] JS/Python `ieum_v2_190` parity 테스트가 성공한다.
+- [ ] synthetic participant-group split 테스트가 성공한다.
+- [ ] Python 전체 syntax check가 성공한다.
+
+## L. v2 학습 후 확인
+
+- [ ] `metrics.json`에 split strategy가 기록된다.
+- [ ] 가능하면 `participant-group` split을 사용한다.
+- [ ] held-out test accuracy와 macro-F1을 validation과 구분한다.
+- [ ] 95% bootstrap CI를 함께 확인한다.
+- [ ] `기타`가 포함됐다면 unknown false-accept/rejection 지표를 확인한다.
+- [ ] `test_predictions.csv`에서 대표 오인식 사례를 직접 검토한다.
+- [ ] FP32/INT8 실제 test-set 성능 차이를 `onnx_evaluation.json`으로 확인한다.
+- [ ] 브라우저 benchmark JSON을 최소 2종 이상의 실제 기기에서 저장한다.
