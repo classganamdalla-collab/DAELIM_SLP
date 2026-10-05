@@ -640,8 +640,10 @@ function hideRepairCandidates() {
 }
 
 function addWordToSentence(labelId) {
+  // Keep canonical model label IDs in state. Rendering converts IDs to Korean
+  // display text; the deterministic decoder also consumes IDs.
   const word = displayName(labelId);
-  sentenceWords.push(word);
+  sentenceWords.push(labelId);
   updateSentenceUI();
   scheduleAutoSpeak();
   holdStatus.textContent = `“${word}” 추가됨`;
@@ -684,12 +686,12 @@ function updateSentenceUI() {
     return;
   }
 
-  sentenceWords.forEach((word, i) => {
+  sentenceWords.forEach((labelId, i) => {
     const chip = document.createElement("span");
     chip.className = "sentence-chip";
 
     const text = document.createElement("span");
-    text.textContent = word;
+    text.textContent = displayName(labelId);
 
     const del = document.createElement("button");
     del.className = "sentence-chip-del";
