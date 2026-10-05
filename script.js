@@ -71,9 +71,9 @@ const studyLogger = new StudyLogger({
   participant: pageParams.get("participant") || "P00",
 });
 
-const MIN_SCORE_SHOW = 0.70;
-const MIN_SCORE_LOCK = 0.75;
-const MIN_MARGIN = 0.20;
+let minScoreShow = 0.70;
+let minScoreLock = 0.75;
+let minMargin = 0.20;
 const MIN_GESTURE_FRAMES = 15;
 const NO_HAND_END_FRAMES = 8;
 const COOLDOWN_MS = 1500;
@@ -180,6 +180,15 @@ async function loadModelStack() {
   }
 
   if (!targetLabels.length) throw new Error("모델 라벨 정보가 없습니다.");
+
+  const rejection = modelMeta?.rejection;
+  if (rejection) {
+    const calibratedScore = Number(rejection.min_score);
+    const calibratedMargin = Number(rejection.min_margin);
+    if (Number.isFinite(calibratedScore)) minScoreShow = calibratedScore;
+    if (Number.isFinite(calibratedMargin)) minMargin = calibratedMargin;
+    minScoreLock = Math.min(0.98, Math.max(minScoreShow + 0.05, minScoreShow));
+  }
 
   datasetStatus.textContent = `AI 모델 준비 완료: ${inferenceEngine.name}`;
   engineStatus.textContent = `${inferenceEngine.name} · ${featureMode === "v2" ? FEATURE_SCHEMAS.v2.id : FEATURE_SCHEMAS.v1.id}`;
@@ -426,15 +435,15 @@ function isDisplayable(result) {
   return Boolean(
     result &&
     result.label !== "기타" &&
-    result.score >= MIN_SCORE_SHOW &&
-    result.margin >= MIN_MARGIN
+    result.score >= minScoreShow &&
+    result.margin >= minMargin
   );
 }
 
 function isLockable(result) {
   return Boolean(
     isDisplayable(result) &&
-    result.score >= MIN_SCORE_LOCK
+    result.score >= minScoreLock
   );
 }
 
@@ -521,9 +530,9 @@ async function classifyGesture() {
     holdBarFill.style.width = "100%";
     lastResult = result;
 
-    if (autoAddEnabled && result.score >= MIN_SCORE_LOCK) {
+    if (autoAddEnabled && result.score >= minScoreLock) {
       addWordToSentence(result.label);
-    } else if (result.score >= MIN_SCORE_LOCK) {
+    } else if (result.score >= minScoreLock) {
       holdStatus.textContent = `“${word}” 확인됨 — + 버튼으로 추가`;
     } else {
       holdStatus.textContent = "신뢰도가 충분하지 않습니다. 필요하면 후보를 선택하세요";
