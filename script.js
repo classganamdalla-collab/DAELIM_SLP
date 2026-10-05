@@ -324,57 +324,76 @@ function drawResults(handResults, faceResults) {
 }
 
 function extractCurrentFrame(handResults, faceResults) {
-  return featureMode === "v2"
+  const row = featureMode === "v2"
     ? extractV2FeaturesFromResults(handResults, faceResults, { profile: v2FeatureProfile })
     : extractV1FeaturesFromResults(handResults, faceResults);
+
+  if (!row || row.length !== featureDim) {
+    throw new Error(`feature row mismatch: expected=${featureDim}, got=${row?.length ?? "null"}`);
+  }
+  return row;
 }
 
 function predictWebcam() {
   if (!appStarted || !webcamRunning || !handLandmarker) return;
 
-  const now = performance.now();
-  drawResults(lastHandResults, lastFaceResults);
+  try {
+    const now = performance.now();
+    drawResults(lastHandResults, lastFaceResults);
 
-  if (video.currentTime !== lastVideoTime) {
-    lastVideoTime = video.currentTime;
-    // Use the live <video> frame directly for MediaPipe VIDEO mode.
-    // This avoids stale canvas-frame tracking on some Chromium/macOS combinations.
-    // video.currentTime is guaranteed to advance here because of the guard above.
-    const frameTimestampMs = video.currentTime * 1000;
+    if (video.currentTime !== lastVideoTime) {
+      lastVideoTime = video.currentTime;
 
-    let handUpdated = false;
-    handFrameCount++;
-    const handStride = featureMode === "v2" ? 1 : 3;
-    if (handFrameCount % handStride === 0) {
-      try {
-        lastHandResults = handLandmarker.detectForVideo(video, frameTimestampMs);
-        handUpdated = true;
-        const cur = lastHandResults?.landmarks?.length ?? 0;
-        latestHandCount = cur;
-        handStatus.textContent = cur > 0 ? `손 감지됨: ${cur}개` : "손 감지되지 않음";
-      } catch (error) {
-        console.error("hand detectForVideo", error);
-        handStatus.textContent = "손 추적 오류";
+      // MediaPipe VIDEO mode requires monotonically increasing timestamps.
+      // Use performance.now() rather than video.currentTime so camera frame
+      // timestamp resets/repeats cannot terminate the render loop.
+      const frameTimestampMs = now;
+
+      let handUpdated = false;
+      handFrameCount++;
+      const handStride = featureMode === "v2" ? 1 : 3;
+      if (handFrameCount % handStride === 0) {
+        try {
+          lastHandResults = handLandmarker.detectForVideo(video, frameTimestampMs);
+          handUpdated = true;
+          const cur = lastHandResults?.landmarks?.length ?? 0;
+          latestHandCount = cur;
+          handStatus.textContent = cur > 0 ? `손 감지됨: ${cur}개` : "손 감지되지 않음";
+        } catch (error) {
+          console.error("hand detectForVideo", error);
+          handStatus.textContent = "손 추적 오류";
+        }
+      }
+
+      faceFrameCount++;
+      if (faceFrameCount % 6 === 0) {
+        try {
+          lastFaceResults = faceLandmarker.detectForVideo(video, frameTimestampMs);
+        } catch (error) {
+          console.error("face detectForVideo", error);
+        }
+      }
+
+      if (featureMode === "v1" || handUpdated) {
+        try {
+          updateGestureBuffer(lastHandResults, lastFaceResults);
+        } catch (error) {
+          // A feature/inference-prep error must never kill the camera render loop.
+          console.error("gesture buffer update", error);
+          holdStatus.textContent = "특징 추출 오류 — 콘솔을 확인해주세요";
+          gestureState = "waiting";
+          gestureBuffer = [];
+          noHandCount = 0;
+          resetLock();
+        }
       }
     }
-
-    faceFrameCount++;
-    if (faceFrameCount % 6 === 0) {
-      try {
-        lastFaceResults = faceLandmarker.detectForVideo(video, frameTimestampMs);
-      } catch (error) {
-        console.error("face detectForVideo", error);
-      }
-    }
-
-    // v1 keeps the legacy temporal sampling used by the original project.
-    // v2 records one feature frame per fresh hand-landmarker result, matching the new collector.
-    if (featureMode === "v1" || handUpdated) {
-      updateGestureBuffer(lastHandResults, lastFaceResults);
-    }
+  } catch (error) {
+    // Keep the camera/landmark loop alive even if drawing or UI code throws.
+    console.error("predictWebcam frame error", error);
+  } finally {
+    if (appStarted && webcamRunning) requestAnimationFrame(predictWebcam);
   }
-
-  requestAnimationFrame(predictWebcam);
 }
 
 function resetLock() {
