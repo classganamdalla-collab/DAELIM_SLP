@@ -292,9 +292,12 @@ function predictWebcam() {
     lastVideoTime = video.currentTime;
     inferCtx.drawImage(video, 0, 0, 640, 480);
 
+    let handUpdated = false;
     handFrameCount++;
-    if (handFrameCount % 3 === 0) {
+    const handStride = featureMode === "v2" ? 2 : 3;
+    if (handFrameCount % handStride === 0) {
       lastHandResults = handLandmarker.detectForVideo(inferCanvas, now);
+      handUpdated = true;
       const cur = lastHandResults?.landmarks?.length ?? 0;
       if (cur !== latestHandCount) {
         latestHandCount = cur;
@@ -307,7 +310,11 @@ function predictWebcam() {
       lastFaceResults = faceLandmarker.detectForVideo(inferCanvas, now);
     }
 
-    updateGestureBuffer(lastHandResults, lastFaceResults);
+    // v1 keeps the legacy temporal sampling used by the original project.
+    // v2 records one feature frame per fresh hand-landmarker result, matching the new collector.
+    if (featureMode === "v1" || handUpdated) {
+      updateGestureBuffer(lastHandResults, lastFaceResults);
+    }
   }
 
   requestAnimationFrame(predictWebcam);
