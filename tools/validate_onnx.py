@@ -11,10 +11,6 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 
-import os
-os.environ.setdefault("KERAS_BACKEND", "tensorflow")
-import keras
-
 # CI smoke-test entrypoint; this file change triggers the ONNX workflow.
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_H5 = ROOT / "model" / "sign_language_model.h5"
@@ -74,15 +70,10 @@ def main():
 
     xs = make_inputs(args.samples, seq_len, feat_dim)
 
-    source = keras.models.load_model(SOURCE_H5, compile=False, safe_mode=False)
-    source_batch = np.concatenate(xs, axis=0)
-    source_outputs = source.predict(source_batch, batch_size=32, verbose=0).astype(np.float32)
-
     fp_times, iq_times = [], []
+    fp_outputs = []
     abs_errs, max_errs = [], []
-    src_abs_errs, src_max_errs = [], []
     argmax_match = 0
-    source_argmax_match = 0
 
     # Warm up both sessions.
     for x in xs[: min(10, len(xs))]:
@@ -98,16 +89,31 @@ def main():
         y_iq = iq.run(None, {iq_in.name: x})[0]
         iq_times.append((time.perf_counter() - t0) * 1000.0)
 
-        y_src = source_outputs[sample_idx:sample_idx + 1]
-        src_delta = np.abs(y_src - y_fp.astype(np.float32))
-        src_abs_errs.append(float(src_delta.mean()))
-        src_max_errs.append(float(src_delta.max()))
-        source_argmax_match += int(np.argmax(y_src) == np.argmax(y_fp))
+        fp_outputs.append(y_fp.astype(np.float32).copy())
 
         delta = np.abs(y_fp.astype(np.float32) - y_iq.astype(np.float32))
         abs_errs.append(float(delta.mean()))
         max_errs.append(float(delta.max()))
         argmax_match += int(np.argmax(y_fp) == np.argmax(y_iq))
+
+    # Load TensorFlow/Keras only after ORT latency measurements. TensorFlow creates
+    # its own CPU thread pools, which would otherwise distort the small-model timing.
+    import os
+    os.environ.setdefault("KERAS_BACKEND", "tensorflow")
+    import keras
+
+    source = keras.models.load_model(SOURCE_H5, compile=False, safe_mode=False)
+    source_batch = np.concatenate(xs, axis=0)
+    source_outputs = source.predict(source_batch, batch_size=32, verbose=0).astype(np.float32)
+
+    src_abs_errs, src_max_errs = [], []
+    source_argmax_match = 0
+    for sample_idx, y_fp in enumerate(fp_outputs):
+        y_src = source_outputs[sample_idx:sample_idx + 1]
+        src_delta = np.abs(y_src - y_fp)
+        src_abs_errs.append(float(src_delta.mean()))
+        src_max_errs.append(float(src_delta.max()))
+        source_argmax_match += int(np.argmax(y_src) == np.argmax(y_fp))
 
     report = {
         "purpose": "Numerical parity and runtime smoke test only; not recognition accuracy.",
