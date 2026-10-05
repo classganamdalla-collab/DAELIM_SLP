@@ -6,6 +6,13 @@ function mean(xs) {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
 }
 
+function completionMode(task) {
+  if (!task?.success) return "failed";
+  if (task.manualFallbackUsed) return "fallback";
+  if (Number(task.candidateRepairs || 0) > 0) return "repair";
+  return "ai-only";
+}
+
 export class StudyLogger {
   constructor({ enabled = false, participant = "P00" } = {}) {
     this.enabled = Boolean(enabled);
@@ -117,10 +124,13 @@ export class StudyLogger {
       sentencesSpoken: this.currentTask.sentencesSpoken,
       meanInferenceLatencyMs: mean(this.currentTask.inferenceLatencies),
     };
+    task.completionMode = completionMode(task);
+
     this.tasks.push(task);
     this.log("task_finish", {
       taskId: task.id,
       success: task.success,
+      completionMode: task.completionMode,
       durationMs: task.durationMs,
     });
     this.currentTask = null;
@@ -130,6 +140,9 @@ export class StudyLogger {
   summary() {
     const completed = this.tasks.length;
     const success = this.tasks.filter(t => t.success).length;
+    const aiOnly = this.tasks.filter(t => completionMode(t) === "ai-only").length;
+    const repair = this.tasks.filter(t => completionMode(t) === "repair").length;
+    const fallback = this.tasks.filter(t => completionMode(t) === "fallback").length;
     const finalEvents = this.events.filter(e => e.type === "final_prediction");
     const acceptedEvents = finalEvents.filter(e => e.accepted);
 
@@ -138,10 +151,17 @@ export class StudyLogger {
       completedTasks: completed,
       successfulTasks: success,
       taskSuccessRate: completed ? success / completed : 0,
+      aiOnlySuccessTasks: aiOnly,
+      aiOnlySuccessRate: completed ? aiOnly / completed : 0,
+      repairSuccessTasks: repair,
+      repairSuccessRate: completed ? repair / completed : 0,
+      fallbackSuccessTasks: fallback,
+      fallbackSuccessRate: completed ? fallback / completed : 0,
       meanTaskDurationMs: mean(this.tasks.map(t => t.durationMs)),
       meanRetryCount: mean(this.tasks.map(t => t.retryCount)),
       manualFallbackTasks: this.tasks.filter(t => t.manualFallbackUsed).length,
-      candidateRepairCount: this.tasks.reduce((a, t) => a + t.candidateRepairs, 0),
+      candidateRepairTasks: this.tasks.filter(t => Number(t.candidateRepairs || 0) > 0).length,
+      candidateRepairCount: this.tasks.reduce((a, t) => a + Number(t.candidateRepairs || 0), 0),
       finalPredictionCount: finalEvents.length,
       acceptedPredictionRate: finalEvents.length ? acceptedEvents.length / finalEvents.length : 0,
       meanInferenceLatencyMs: mean(this.inferenceLatencies),
@@ -150,7 +170,8 @@ export class StudyLogger {
 
   payload() {
     return {
-      format: "ieum-pilot-log-v1",
+      format: "ieum-pilot-log-v2",
+      compatibleFormats: ["ieum-pilot-log-v1"],
       participant: this.participant,
       sessionId: this.sessionId,
       startedAt: this.startedAt,
