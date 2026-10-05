@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - contest-2026-onnx
+      - contest-2026-v2-final
   pull_request:
 
 concurrency:
@@ -31,8 +32,10 @@ jobs:
           node --check src/study-logger.js
           node --check pilot-dashboard.js
           node --check pilot-survey.js
+          node --check tests/feature_smoke.mjs
+          node --check tests/feature_parity.mjs
 
-      - name: JavaScript feature smoke test
+      - name: JavaScript feature and decoder smoke test
         run: node tests/feature_smoke.mjs
 
       - uses: actions/setup-python@v5
@@ -40,9 +43,16 @@ jobs:
           python-version: "3.11"
 
       - name: Python syntax
-        run: python -m py_compile training/*.py tools/*.py
+        run: python -m py_compile training/*.py tools/*.py tests/*.py
+
+      - name: Install lightweight test dependencies
+        run: python -m pip install "numpy>=1.26,<3" "scikit-learn>=1.5,<2"
 
       - name: Python feature self-test
-        run: |
-          python -m pip install "numpy>=1.26,<3"
-          python training/features.py
+        run: python training/features.py
+
+      - name: JS/Python feature parity
+        run: python tests/feature_parity.py
+
+      - name: Dataset grouped-split smoke test
+        run: python tests/dataset_smoke.py
