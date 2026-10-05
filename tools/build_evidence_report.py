@@ -102,7 +102,7 @@ def collect_benchmarks(paths):
     out = []
     for path in paths:
         data = load(path)
-        if data.get("format") == "ieum-browser-benchmark-v1":
+        if data.get("format") in {"ieum-browser-benchmark-v1", "ieum-browser-benchmark-v2"}:
             out.append(data)
     return out
 
