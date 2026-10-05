@@ -3,91 +3,131 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>이음</title>
+  <meta name="theme-color" content="#F7FAFC" />
+  <title>이음 — 수어를 잇다</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
-
-    <!-- ① 시작 화면 -->
     <div id="startScreen" class="start-screen">
       <div class="start-content">
         <img src="assets/logo.png" class="start-logo-img" alt="이음 로고">
         <div class="start-tagline">수어를 잇다</div>
+        <div class="start-description">
+          카페 주문 상황에서 수어를 문자·음성으로, 상대방 음성을 문자로 연결하는
+          웹 기반 AAC 프로토타입
+        </div>
+        <div id="modelBadge" class="start-model-badge">AI 모델 확인 중...</div>
         <button id="launchBtn" class="launch-btn" disabled>불러오는 중...</button>
-        <div class="start-notice">카메라 권한이 필요합니다</div>
+        <div class="start-notice">시작하면 카메라 권한을 요청합니다.</div>
+        <div class="start-links">
+          <a href="benchmark.html">모델 성능 진단</a>
+          <a href="collector.html">연구용 데이터 수집기</a>
+        </div>
       </div>
     </div>
 
-    <!-- ② 메인 화면 -->
     <div id="mainApp" class="main-app hidden">
       <video id="webcam" autoplay playsinline muted></video>
       <canvas id="outputCanvas"></canvas>
 
-      <!-- 상단 HUD -->
       <div class="top-hud">
-        <div class="hud-brand" id="brandBtn">
+        <div class="hud-brand" id="brandBtn" title="시작 화면으로">
           <img src="assets/logo.png" class="brand-logo" alt="이음">
-          <span class="brand-name">이음</span>
+          <div>
+            <span class="brand-name">이음</span>
+            <span class="context-chip">카페 주문</span>
+          </div>
         </div>
+
         <div class="hud-center">
           <span id="statusDot" class="status-dot"></span>
           <span id="runStatus" class="status-text">대기 중</span>
         </div>
+
         <div class="hud-controls">
           <button id="speakSentenceBtn" class="hud-btn accent">🔊 읽기</button>
-          <button id="autoSpeakToggle" class="hud-btn ghost">자동</button>
-          <button id="listenBtn"        class="hud-btn secondary">🎤 듣기</button>
+          <button id="autoSpeakToggle" class="hud-btn ghost" title="문장 추가 후 자동 읽기">자동읽기</button>
+          <button id="autoAddToggle" class="hud-btn accent" title="확신도가 충분한 단어 자동 추가">자동추가</button>
+          <button id="listenBtn" class="hud-btn secondary">🎤 듣기</button>
+          <button id="fallbackBtn" class="hud-btn secondary">⌨ 직접입력</button>
           <button id="clearSentenceBtn" class="hud-btn ghost">✕</button>
         </div>
       </div>
 
-      <!-- 상대방 음성 패널 -->
       <div id="speechPanel" class="speech-panel hidden">
         <div class="panel-block">
-          <div class="panel-label">🎤 상대방</div>
-          <div id="speechFinal"   class="speech-final"></div>
+          <div class="panel-label">상대방 음성 → 문자</div>
+          <div id="speechFinal" class="speech-final"></div>
           <div id="speechInterim" class="speech-interim"></div>
           <button id="clearSpeechBtn" class="speech-clear-btn">지우기</button>
         </div>
       </div>
 
-      <!-- 우측 패널 -->
       <div class="right-panel">
         <div class="panel-block status-block">
           <div id="cameraStatus" class="info-line">카메라 준비 중...</div>
-          <div id="handStatus"   class="info-line">손 감지 확인 중...</div>
+          <div id="handStatus" class="info-line">손 감지 확인 중...</div>
+          <div id="engineStatus" class="info-line">모델 준비 중...</div>
         </div>
+
         <div class="panel-block result-block">
           <div class="panel-label">현재 인식</div>
           <div id="currentPrediction" class="big-word">—</div>
-          <div id="predictionScore"   class="score-text">신뢰도: —</div>
+          <div id="predictionScore" class="score-text">신뢰도: —</div>
           <div id="holdBar" class="hold-bar-wrap">
             <div id="holdBarFill" class="hold-bar-fill"></div>
           </div>
           <div id="holdStatus" class="hold-text">안정화 대기 중</div>
+          <div id="repairCandidates" class="repair-candidates hidden"></div>
         </div>
       </div>
 
-      <!-- 하단 영역 -->
       <div class="bottom-area">
-        <div class="bottom-bar">
-          <div id="sentenceOutput" class="sentence-output">
-            <span class="sentence-empty">수어로 단어를 추가해보세요</span>
+        <div class="bottom-bar enhanced-bottom">
+          <div class="sentence-stack">
+            <div id="sentenceOutput" class="sentence-output">
+              <span class="sentence-empty">수어로 단어를 추가해보세요</span>
+            </div>
+            <div id="sentenceNatural" class="sentence-natural"></div>
           </div>
-          <button id="addWordBtn" class="add-word-btn" title="단어 수동 추가 (더블클릭: 자동↔수동)">+</button>
+          <button id="addWordBtn" class="add-word-btn" title="현재 인식 단어 수동 추가">+</button>
         </div>
         <button id="startBtn" class="start-fab" title="인식 시작">▶</button>
       </div>
 
-      <!-- JS 참조용 숨김 요소 -->
-      <div id="datasetStatus" style="display:none"></div>
-      <div id="labelChips"    style="display:none"></div>
-    </div>
+      <div id="manualPanel" class="manual-panel hidden" role="dialog" aria-modal="true" aria-label="직접 입력">
+        <div class="manual-card">
+          <div class="manual-head">
+            <div>
+              <div class="manual-title">직접 입력</div>
+              <div class="manual-sub">AI 인식이 어렵거나 빠르게 전달해야 할 때 사용할 수 있습니다.</div>
+            </div>
+            <button id="manualCloseBtn" class="manual-close" aria-label="닫기">×</button>
+          </div>
+          <textarea id="manualText" rows="3" placeholder="상대방에게 전달할 문장을 입력하세요."></textarea>
+          <div class="quick-phrases">
+            <button class="quick-phrase">잠시만요.</button>
+            <button class="quick-phrase">다시 말씀해주세요.</button>
+            <button class="quick-phrase">네.</button>
+            <button class="quick-phrase">아니요.</button>
+            <button class="quick-phrase">감사합니다.</button>
+          </div>
+          <button id="manualSpeakBtn" class="manual-speak">입력한 문장 읽기</button>
+        </div>
+      </div>
 
+      <div class="privacy-hint">
+        수어 모델 추론은 브라우저에서 처리됩니다. 음성 인식은 브라우저 구현에 따라 서버 처리가 포함될 수 있습니다.
+      </div>
+
+      <div id="datasetStatus" style="display:none"></div>
+      <div id="labelChips" style="display:none"></div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.min.js"></script>
   <script type="module" src="script.js"></script>
 </body>
 </html>
