@@ -52,7 +52,7 @@
 
 ## 5. 개선 feature schema (v2)
 
-코드 구현 완료, **실제 재학습은 아직 수행하지 않음**.
+코드·수집기·평가 파이프라인 구현 및 자동 parity/split 검증 완료, **실제 다인원 재학습은 아직 수행하지 않음**.
 
 `ieum_v2_190`:
 
@@ -76,7 +76,17 @@ v2 학습 파이프라인은 동일 데이터 split에서:
 
 를 학습하고 validation macro-F1을 우선 기준으로 선택합니다.
 
-최종 결과는 선택된 후보를 별도 test split에서 1회 평가하도록 설계했습니다.
+최종 결과는 선택된 후보를 별도 test split에서 1회 평가하도록 설계했습니다. 현재 파이프라인은 추가로:
+
+- held-out test accuracy / macro-F1 / weighted-F1
+- bootstrap 95% CI
+- confusion matrix와 classification report
+- test sample별 true/pred/confidence/margin
+- participant별 test 성능
+- `기타` 클래스가 있을 때 unknown false-accept rate
+- rejection 적용 후 known-class coverage / selective accuracy
+
+를 저장합니다.
 
 ## 7. Split 정책
 
@@ -137,7 +147,22 @@ v2 학습 파이프라인은 동일 데이터 split에서:
 
 조건에서 수집해야 합니다.
 
-## 12. 권장 보고 표현
+## 12. v2 ONNX/양자화 의사결정 규칙
+
+v2 학습 후 `tools/run_v2_pipeline.py`는 동일 held-out test IDs에서 ONNX FP32와 Dynamic INT8을 비교합니다.
+
+INT8은 최소한:
+- test accuracy 감소 ≤ 1%p
+- macro-F1 감소 ≤ 1%p
+- FP32/INT8 argmax 일치율 ≥ 99%
+
+조건을 확인하도록 구현했습니다. 이 gate를 통과해도 브라우저 benchmark 결과가 느리면 기본 런타임으로 채택하지 않습니다.
+
+## 13. 특징 구현 동일성
+
+브라우저 JavaScript와 Python 학습 코드가 같은 `ieum_v2_190`을 생성하는지 공유 fixture로 자동 비교합니다. CI에서 190차원 전체에 대한 numerical parity를 확인합니다.
+
+## 14. 권장 보고 표현
 
 권장:
 
