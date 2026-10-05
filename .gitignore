@@ -8,3 +8,7 @@ training_runs/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Local pilot/benchmark evidence and generated reports
+reports/input/
+reports/local/
