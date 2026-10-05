@@ -1,5 +1,5 @@
-tensorflow>=2.16,<2.21; platform_system == "Darwin"
-tensorflow-cpu>=2.16,<2.21; platform_system != "Darwin"
+tensorflow==2.20.0; platform_system == "Darwin" and python_version < "3.14"
+tensorflow-cpu==2.20.0; platform_system != "Darwin" and python_version < "3.14"
 keras>=3,<4
 numpy>=1.26,<3
 scikit-learn>=1.5,<2
