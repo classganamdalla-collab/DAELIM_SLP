@@ -12,6 +12,8 @@ import numpy as np
 import onnxruntime as ort
 from sklearn.metrics import accuracy_score, f1_score
 
+import keras
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "training"))
 
@@ -79,9 +81,10 @@ def main() -> None:
     y = np.asarray([label_to_idx[bundle.y_labels[i]] for i in selected], dtype=np.int64)
     label_ids = np.arange(len(labels))
 
+    keras_path = model_dir / "best_model.keras"
     fp_path = model_dir / "best_model_fp32.onnx"
     iq_path = model_dir / "best_model_int8.onnx"
-    for path in (fp_path, iq_path):
+    for path in (keras_path, fp_path, iq_path):
         if not path.exists():
             raise SystemExit(f"Missing model: {path}")
 
@@ -90,8 +93,11 @@ def main() -> None:
     fp = ort.InferenceSession(str(fp_path), sess_options=opts, providers=["CPUExecutionProvider"])
     iq = ort.InferenceSession(str(iq_path), sess_options=opts, providers=["CPUExecutionProvider"])
 
+    keras_model = keras.models.load_model(keras_path, compile=False)
+    p_keras = np.asarray(keras_model.predict(X, verbose=0), dtype=np.float32)
     p_fp = infer(fp, X)
     p_iq = infer(iq, X)
+    y_keras = p_keras.argmax(axis=1)
     y_fp = p_fp.argmax(axis=1)
     y_iq = p_iq.argmax(axis=1)
 
@@ -103,8 +109,10 @@ def main() -> None:
             ),
         }
 
+    m_keras = metrics(y_keras)
     m_fp = metrics(y_fp)
     m_iq = metrics(y_iq)
+    convert_diff = np.abs(p_keras - p_fp)
     diff = np.abs(p_fp - p_iq)
 
     accuracy_drop = m_fp["accuracy"] - m_iq["accuracy"]
@@ -123,6 +131,16 @@ def main() -> None:
         "labels": labels,
         "split_strategy": meta.get("split_strategy"),
         "dataset_fingerprint_sha256": bundle.fingerprint,
+        "keras_reference": {
+            **m_keras,
+        },
+        "keras_vs_onnx_fp32": {
+            "accuracy_drop": float(m_keras["accuracy"] - m_fp["accuracy"]),
+            "macro_f1_drop": float(m_keras["macro_f1"] - m_fp["macro_f1"]),
+            "argmax_agreement": float((y_keras == y_fp).mean()),
+            "mean_abs_output_error": float(convert_diff.mean()),
+            "max_abs_output_error": float(convert_diff.max()),
+        },
         "fp32": {
             **m_fp,
             "bytes": fp_path.stat().st_size,
@@ -141,9 +159,15 @@ def main() -> None:
             "max_abs_output_error": float(diff.max()),
             "size_reduction_percent": float(100.0 * (1.0 - iq_path.stat().st_size / fp_path.stat().st_size)),
         },
+        "fp32_conversion_gate_pass": bool(
+            (m_keras["accuracy"] - m_fp["accuracy"]) <= 0.005
+            and (m_keras["macro_f1"] - m_fp["macro_f1"]) <= 0.005
+            and float((y_keras == y_fp).mean()) >= 0.995
+        ),
         "int8_accuracy_gate_pass": bool(recommended),
         "decision_note": (
-            "Passing this accuracy gate is necessary but not sufficient. "
+            "Keras-to-ONNX conversion parity is reported separately. "
+            "Passing the INT8 accuracy gate is necessary but not sufficient. "
             "Use browser benchmark results before selecting INT8 as the default web runtime."
         ),
         "onnxruntime_version": ort.__version__,
