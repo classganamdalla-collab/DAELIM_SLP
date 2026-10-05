@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   FEATURE_SCHEMAS,
   extractV2FeaturesFromRawFrame,
+  extractV2FeaturesFromResults,
 } from "../src/feature-schema.js";
 import { decodeCafeWords } from "../src/cafe-decoder.js";
 
@@ -29,6 +30,34 @@ const x = extractV2FeaturesFromRawFrame({
 assert.equal(x.length, FEATURE_SCHEMAS.v2.featureDim);
 assert.ok(x.every(Number.isFinite));
 
+const liveHandResults = {
+  landmarks: [hand.landmarks],
+  handedness: [[{ categoryName: "Left", score: 0.99 }]],
+};
+const liveFaceLandmarks = Array.from({ length: 478 }, () => ({ x: 0, y: 0, z: 0 }));
+for (const [idx, point] of Object.entries(faceExtended)) {
+  liveFaceLandmarks[Number(idx)] = point;
+}
+const liveFaceResults = {
+  faceLandmarks: [liveFaceLandmarks],
+  // This is the MediaPipe Tasks Vision Classifications-object shape seen in browsers.
+  faceBlendshapes: [{
+    categories: [
+      { categoryName: "jawOpen", score: 0.2 },
+      { categoryName: "browInnerUp", score: 0.1 },
+    ],
+  }],
+};
+
+const liveBase8 = extractV2FeaturesFromResults(
+  liveHandResults,
+  liveFaceResults,
+  { profile: "base8" },
+);
+assert.equal(liveBase8.length, FEATURE_SCHEMAS.v2Base8.featureDim);
+assert.ok(liveBase8.every(Number.isFinite));
+
+
 const cases = [
   [["아이스", "아메리카노", "주세요"], /아이스 아메리카노 주세요/],
   [["뜨거운", "아메리카노", "주세요"], /따뜻한 아메리카노 주세요/],
@@ -49,4 +78,4 @@ for (const [tokens, expected] of cases) {
 // Unknown/non-domain input must not be hallucinated into a cafe phrase.
 assert.equal(decodeCafeWords(["임의표현"]), "임의표현");
 
-console.log("JS feature/decoder smoke test OK", x.length);
+console.log("JS feature/decoder smoke test OK", x.length, "live-base8", liveBase8.length);
