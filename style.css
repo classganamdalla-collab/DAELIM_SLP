@@ -780,3 +780,14 @@ html, body {
 @media(max-width:760px) {
   .study-controls { left:8px; top:58px; max-width:calc(100vw - 16px); flex-wrap:wrap; }
 }
+
+.study-controls select {
+  max-width:180px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px 8px;
+  background:#fff;
+  color:var(--navy);
+  font:700 10px 'Noto Sans KR',sans-serif;
+}
+.study-controls select:disabled { opacity:.55; }
