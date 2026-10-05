@@ -146,8 +146,13 @@ def _group_split(
         rel_val, rel_test = next(inner.split(temp_idx, labels[temp_idx], temp_groups))
         val_idx, test_idx = temp_idx[rel_val], temp_idx[rel_test]
 
+        train_coverage = _coverage(labels, train_idx, universe)
+        if train_coverage < 1.0:
+            # Never choose a grouped split that leaves a target class unseen in training.
+            continue
+
         score = (
-            2.0 * _coverage(labels, train_idx, universe)
+            2.0 * train_coverage
             + _coverage(labels, val_idx, universe)
             + _coverage(labels, test_idx, universe)
         )
