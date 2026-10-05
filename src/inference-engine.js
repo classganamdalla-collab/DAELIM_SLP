@@ -87,8 +87,22 @@ export async function createV1Engine(preference = "auto") {
 
 export async function createV2Engine(preference = "auto") {
   const query = String(preference || "auto").toLowerCase();
+
   if (query === "onnx-int8" || query === "int8") {
     return OnnxEngine.load("./model/v2/best_model_int8.onnx", { int8: true });
   }
-  return OnnxEngine.load("./model/v2/best_model_fp32.onnx");
+
+  if (query === "onnx-fp32" || query === "fp32" || query === "onnx") {
+    return OnnxEngine.load("./model/v2/best_model_fp32.onnx");
+  }
+
+  // Browser benchmark on the target Mac showed INT8 has much smaller load size
+  // and near-identical WASM inference latency with no held-out accuracy loss.
+  // Prefer INT8 in auto mode, but keep FP32 as a compatibility fallback.
+  try {
+    return await OnnxEngine.load("./model/v2/best_model_int8.onnx", { int8: true });
+  } catch (int8Error) {
+    console.warn("v2 INT8 load failed; falling back to FP32", int8Error);
+    return OnnxEngine.load("./model/v2/best_model_fp32.onnx");
+  }
 }
