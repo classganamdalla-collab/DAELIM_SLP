@@ -743,3 +743,40 @@ html, body {
   .start-links { flex-direction:column; gap:6px; }
   .manual-card { padding:18px; border-radius:20px; }
 }
+
+.study-controls {
+  position:absolute;
+  z-index:20;
+  left:22px;
+  top:78px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:8px;
+  border:1px solid rgba(170,200,225,0.45);
+  background:rgba(255,255,255,0.90);
+  backdrop-filter:blur(14px);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+}
+.study-label {
+  padding:0 6px;
+  font-size:11px;
+  font-weight:800;
+  color:var(--blue);
+}
+.study-controls button, .study-controls a {
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px 9px;
+  background:#fff;
+  color:var(--navy);
+  font:700 10px 'Noto Sans KR',sans-serif;
+  text-decoration:none;
+  cursor:pointer;
+}
+.study-controls button:disabled { opacity:.4; cursor:not-allowed; }
+.study-controls button:not(:disabled):hover, .study-controls a:hover { background:rgba(79,182,245,.08); }
+@media(max-width:760px) {
+  .study-controls { left:8px; top:58px; max-width:calc(100vw - 16px); flex-wrap:wrap; }
+}
