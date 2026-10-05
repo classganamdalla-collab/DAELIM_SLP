@@ -116,7 +116,10 @@ runBtn.addEventListener("click",async()=>{
   try{
     statusEl.textContent=" v2 모델 확인 중...";
     const meta=await fetchJson(META_URL);
-    if(meta.feature_schema!=="ieum_v2_190") throw new Error("ieum_v2_190 metadata가 아닙니다.");
+    const supportedSchemas = new Set(["ieum_v2_190", "ieum_v2_base8_190"]);
+    if(!supportedSchemas.has(meta.feature_schema)) {
+      throw new Error(`지원하지 않는 v2 metadata입니다: ${meta.feature_schema}`);
+    }
     const shape=[1,Number(meta.max_sequence_length||100),Number(meta.feature_dim||190)];
     const fetchStart=performance.now();
     const [fpFile,iqFile]=await Promise.all([fetchBytes(FP32_URL),fetchBytes(INT8_URL)]);
@@ -173,7 +176,12 @@ runBtn.addEventListener("click",async()=>{
     latestReport={
       format:"ieum-browser-benchmark-v2",
       createdAt:new Date().toISOString(),
-      metadata:{feature_schema:meta.feature_schema,selected_model:meta.selected_model,labels:meta.labels},
+      metadata:{
+        feature_schema:meta.feature_schema,
+        feature_profile:meta.feature_profile||null,
+        selected_model:meta.selected_model,
+        labels:meta.labels
+      },
       inputShape:shape,iterations:N,warmup:WARMUP,device:deviceInfo(),
       engines:rows.map(([name,load,s,bytes])=>({
         name,loadMs:load,latencyMeanMs:s.mean,latencyMedianMs:s.median,latencyP95Ms:s.p95,modelBytes:bytes
