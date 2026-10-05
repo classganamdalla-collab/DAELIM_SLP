@@ -7,22 +7,27 @@
     90
   ],
   "fp32": {
-    "bytes": 695959,
-    "latency_ms_mean": 2.309595890000177,
-    "latency_ms_median": 2.2299444999873685,
-    "latency_ms_p95": 2.7841790000024957
+    "bytes": 696181,
+    "latency_ms_mean": 7.555122876666663,
+    "latency_ms_median": 7.397722999996859,
+    "latency_ms_p95": 7.9600199999845245
   },
   "int8": {
-    "bytes": 239430,
-    "latency_ms_mean": 2.5249896366660587,
-    "latency_ms_median": 2.432937500003618,
-    "latency_ms_p95": 3.5143860000061977
+    "bytes": 239649,
+    "latency_ms_mean": 8.257946593333068,
+    "latency_ms_median": 8.086687000016468,
+    "latency_ms_p95": 10.885405999999875
+  },
+  "source_keras_vs_onnx_fp32": {
+    "mean_abs_output_error": 2.440375975455017e-08,
+    "max_abs_output_error": 4.291534423828125e-06,
+    "argmax_agreement_percent": 100.0
   },
   "int8_vs_fp32": {
-    "size_reduction_percent": 65.59711132408663,
-    "mean_abs_output_error": 0.0009918170080122893,
-    "max_abs_output_error": 0.3804759383201599,
-    "argmax_agreement_percent": 99.0
+    "size_reduction_percent": 65.57662446978587,
+    "mean_abs_output_error": 0.0014968937041124756,
+    "max_abs_output_error": 0.4261278510093689,
+    "argmax_agreement_percent": 99.33333333333333
   },
   "onnxruntime_version": "1.30.0"
 }
