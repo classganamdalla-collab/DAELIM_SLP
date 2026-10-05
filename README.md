@@ -193,3 +193,30 @@ model/onnx/                 v1 ONNX FP32/INT8
 5. 위 실측값으로 공모전 결과 문단 확정
 
 이 단계 전까지는 v2의 정확도·파일럿 성공률을 수치로 주장하지 않습니다.
+
+
+## 기존 2.0-facemesh JSON으로 재촬영 없이 학습
+
+예전 수집 JSON에 `hands`, `handedness`, `landmarks`, `face`가 있으면 재사용할 수 있습니다. `faceExtended`/blendshape가 없는 기존 자료는 `base8` 프로필을 사용합니다.
+
+최종 카페 파일을 그대로 쓰는 경우:
+
+```bash
+python tools/run_v2_pipeline.py \
+  --data "/절대경로/samples.json" \
+  --feature-profile base8
+```
+
+기존 카페의 `기타`가 적다면, 과거 카페 밖 수어를 target-vocabulary 밖 예시로 일부 재사용할 수 있습니다.
+
+```bash
+python tools/build_legacy_training_set.py \
+  --cafe "/절대경로/최종카페/samples.json" \
+  --unknown "/절대경로/자기소개1.json" "/절대경로/자기소개2.json" "/절대경로/자기소개3.json"
+
+python tools/run_v2_pipeline.py \
+  --data "data/raw/legacy_cafe_base8.json" \
+  --feature-profile base8
+```
+
+기본 unknown 재매핑 대상은 `나`, `사랑해`, `만나서 반갑습니다`이며 각 라벨 최대 20개만 가져와 클래스 불균형을 피합니다. 이 표본들은 잘못된 수어가 아니라 **현재 카페 target vocabulary 밖의 정상적인 한국수어 표현**으로 취급합니다.
