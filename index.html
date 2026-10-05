@@ -42,24 +42,24 @@
 
         <div class="hud-center">
           <span id="statusDot" class="status-dot"></span>
-          <span id="runStatus" class="status-text">대기 중</span>
+          <span id="runStatus" class="status-text" role="status" aria-live="polite">대기 중</span>
         </div>
 
         <div class="hud-controls">
-          <button id="speakSentenceBtn" class="hud-btn accent">🔊 읽기</button>
-          <button id="autoSpeakToggle" class="hud-btn ghost" title="문장 추가 후 자동 읽기">자동읽기</button>
-          <button id="autoAddToggle" class="hud-btn accent" title="확신도가 충분한 단어 자동 추가">자동추가</button>
-          <button id="listenBtn" class="hud-btn secondary">🎤 듣기</button>
-          <button id="fallbackBtn" class="hud-btn secondary">⌨ 직접입력</button>
-          <button id="clearSentenceBtn" class="hud-btn ghost">✕</button>
+          <button id="speakSentenceBtn" class="hud-btn accent" aria-label="현재 문장 읽기">🔊 읽기</button>
+          <button id="autoSpeakToggle" class="hud-btn ghost" title="문장 추가 후 자동 읽기" aria-pressed="false">자동읽기</button>
+          <button id="autoAddToggle" class="hud-btn accent" title="확신도가 충분한 단어 자동 추가" aria-pressed="true">자동추가</button>
+          <button id="listenBtn" class="hud-btn secondary" aria-label="상대방 음성을 문자로 변환">🎤 듣기</button>
+          <button id="fallbackBtn" class="hud-btn secondary" aria-haspopup="dialog">⌨ 직접입력</button>
+          <button id="clearSentenceBtn" class="hud-btn ghost" aria-label="현재 문장 전체 지우기">✕</button>
         </div>
       </div>
 
       <div id="speechPanel" class="speech-panel hidden">
         <div class="panel-block">
           <div class="panel-label">상대방 음성 → 문자</div>
-          <div id="speechFinal" class="speech-final"></div>
-          <div id="speechInterim" class="speech-interim"></div>
+          <div id="speechFinal" class="speech-final" role="status" aria-live="polite" aria-atomic="true"></div>
+          <div id="speechInterim" class="speech-interim" aria-live="polite"></div>
           <button id="clearSpeechBtn" class="speech-clear-btn">지우기</button>
         </div>
       </div>
@@ -73,27 +73,27 @@
 
         <div class="panel-block result-block">
           <div class="panel-label">현재 인식</div>
-          <div id="currentPrediction" class="big-word">—</div>
+          <div id="currentPrediction" class="big-word" role="status" aria-live="polite" aria-atomic="true">—</div>
           <div id="predictionScore" class="score-text">신뢰도: —</div>
           <div id="holdBar" class="hold-bar-wrap">
             <div id="holdBarFill" class="hold-bar-fill"></div>
           </div>
-          <div id="holdStatus" class="hold-text">안정화 대기 중</div>
-          <div id="repairCandidates" class="repair-candidates hidden"></div>
+          <div id="holdStatus" class="hold-text" role="status" aria-live="polite">안정화 대기 중</div>
+          <div id="repairCandidates" class="repair-candidates hidden" aria-live="polite" aria-label="인식 후보"></div>
         </div>
       </div>
 
       <div class="bottom-area">
         <div class="bottom-bar enhanced-bottom">
           <div class="sentence-stack">
-            <div id="sentenceOutput" class="sentence-output">
+            <div id="sentenceOutput" class="sentence-output" aria-live="polite" aria-label="인식된 단어">
               <span class="sentence-empty">수어로 단어를 추가해보세요</span>
             </div>
-            <div id="sentenceNatural" class="sentence-natural"></div>
+            <div id="sentenceNatural" class="sentence-natural" role="status" aria-live="polite" aria-atomic="true"></div>
           </div>
-          <button id="addWordBtn" class="add-word-btn" title="현재 인식 단어 수동 추가">+</button>
+          <button id="addWordBtn" class="add-word-btn" title="현재 인식 단어 수동 추가" aria-label="현재 인식 단어 문장에 추가">+</button>
         </div>
-        <button id="startBtn" class="start-fab" title="인식 시작">▶</button>
+        <button id="startBtn" class="start-fab" title="인식 시작" aria-label="수어 인식 시작" aria-pressed="false">▶</button>
       </div>
 
       <div id="manualPanel" class="manual-panel hidden" role="dialog" aria-modal="true" aria-label="직접 입력">
@@ -105,7 +105,7 @@
             </div>
             <button id="manualCloseBtn" class="manual-close" aria-label="닫기">×</button>
           </div>
-          <textarea id="manualText" rows="3" placeholder="상대방에게 전달할 문장을 입력하세요."></textarea>
+          <label for="manualText" class="sr-only">상대방에게 전달할 문장</label>\n          <textarea id="manualText" rows="3" placeholder="상대방에게 전달할 문장을 입력하세요."></textarea>
           <div class="quick-phrases">
             <button class="quick-phrase">잠시만요.</button>
             <button class="quick-phrase">다시 말씀해주세요.</button>
