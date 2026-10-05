@@ -4,7 +4,7 @@
 
 ## 현재 상태
 
-이 저장소의 `main`은 2026년 6월 버전을 보존합니다. 공모전 개선 작업은 **`contest-2026-onnx` 브랜치**에서 진행합니다.
+이 저장소의 `main`은 2026년 6월 버전을 보존합니다. 공모전 개선 작업은 **`contest-2026-v2-final` 브랜치**에서 통합 검증합니다. 이전 `contest-2026-onnx` 브랜치는 ONNX 전환 실험 이력으로 보존합니다.
 
 현재 개선 브랜치에서 완료된 항목:
 
@@ -14,7 +14,7 @@
 - TF.js / ONNX FP32 / ONNX INT8 브라우저 벤치마크 페이지
 - 양손 + 얼굴 비수지 특징을 위한 `ieum_v2_190` feature schema
 - 새 데이터 수집기: 양손 landmark, 확장 얼굴 landmark, Face Blendshape, 가명 참여자/세션 코드
-- LSTM vs GRU 학습·평가 파이프라인
+- LSTM vs GRU 학습·평가 파이프라인\n- JS/Python v2 특징 추출 parity 자동검사\n- 참여자 단위 split 자동검사 및 test prediction 저장\n- test accuracy/macro-F1 bootstrap 95% CI\n- `기타` 표본이 있을 때 unknown false-accept를 고려한 rejection threshold 보정
 - 참여자 단위 split 우선 평가
 - 인식 실패 시 상위 후보 선택을 통한 communication repair
 - 직접 텍스트 입력/빠른 표현 등 fallback AAC
@@ -180,3 +180,16 @@ model/onnx/                 v1 ONNX FP32/INT8
 - 현재 내부 validation 수치를 실제 사용자 성능으로 일반화하지 않습니다.
 - AI가 실패할 수 있으므로 후보 선택, 직접 입력 등 대체 의사소통 경로를 유지합니다.
 - 실제 임상적·사회적 효과는 한국수어 사용자와의 공동 설계 및 별도 검증이 필요합니다.
+
+
+## 현재 완료선과 남은 실제 작업
+
+코드로 수행 가능한 구조 개선·검증 자동화는 공모전용 브랜치에 반영되어 있습니다. 다만 다음은 실제 사람/기기가 필요하므로 저장소에서 임의 생성하지 않습니다.
+
+1. 가명 참여자 코드로 실제 수어 표본 수집
+2. 다인원 v2 재학습 및 held-out test 평가
+3. Chrome/Android/iPhone 등 실제 기기 브라우저 QA와 benchmark JSON 수집
+4. 실제 파일럿 과제 및 사용성 설문
+5. 위 실측값으로 공모전 결과 문단 확정
+
+이 단계 전까지는 v2의 정확도·파일럿 성공률을 수치로 주장하지 않습니다.
