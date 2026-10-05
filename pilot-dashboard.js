@@ -3,11 +3,20 @@ const statusEl = document.getElementById("status");
 const metricsEl = document.getElementById("metrics");
 const participantRows = document.getElementById("participantRows");
 const taskRows = document.getElementById("taskRows");
+const surveyRows = document.getElementById("surveyRows");
+const surveyComments = document.getElementById("surveyComments");
 const exportCsvBtn = document.getElementById("exportCsv");
 
 let logs = [];
+let surveys = [];
 
 const mean = xs => xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : 0;
+const median = xs => {
+  if (!xs.length) return 0;
+  const a=[...xs].sort((x,y)=>x-y);
+  const m=Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+};
 const pct = x => `${(100*x).toFixed(1)}%`;
 const sec = ms => (ms/1000).toFixed(2);
 const ms1 = n => Number(n||0).toFixed(2);
@@ -16,6 +25,13 @@ function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   })[ch]);
+}
+
+function allTasks() {
+  return logs.flatMap(log => (log.tasks || []).map(t => ({
+    ...t,
+    participant: log.participant || "unknown"
+  })));
 }
 
 function participantStats() {
@@ -42,18 +58,54 @@ function participantStats() {
   });
 }
 
+function renderSurvey() {
+  const items = new Map();
+  for (const survey of surveys) {
+    for (const item of survey.scores || []) {
+      const key = Number(item.item);
+      if (!items.has(key)) items.set(key, {question:item.question || `문항 ${key}`, scores:[]});
+      items.get(key).scores.push(Number(item.score));
+    }
+  }
+
+  surveyRows.innerHTML = [...items.entries()].sort((a,b)=>a[0]-b[0]).map(([item, data]) => {
+    const xs=data.scores.filter(Number.isFinite);
+    const range=xs.length ? `${Math.min(...xs)}–${Math.max(...xs)}` : "-";
+    return `<tr><td>${item}. ${esc(data.question)}</td><td>${xs.length}</td><td>${mean(xs).toFixed(2)}</td><td>${median(xs).toFixed(2)}</td><td>${range}</td></tr>`;
+  }).join("");
+
+  const comments = surveys.flatMap(s => {
+    const p=esc(s.participant || "unknown");
+    const c=s.comments || {};
+    return [
+      c.difficult ? `<div><b>${p} · 불편</b> — ${esc(c.difficult)}</div>` : "",
+      c.useful ? `<div><b>${p} · 유용</b> — ${esc(c.useful)}</div>` : "",
+      c.improve ? `<div><b>${p} · 개선</b> — ${esc(c.improve)}</div>` : "",
+    ].filter(Boolean);
+  });
+  surveyComments.innerHTML = comments.length ? comments.join("") : "불러온 자유응답이 없습니다.";
+}
+
 function render() {
-  const tasks = logs.flatMap(log => (log.tasks || []).map(t => ({...t, participant:log.participant||"unknown"})));
-  const participants = new Set(logs.map(x=>x.participant||"unknown"));
+  const tasks = allTasks();
+  const participants = new Set([
+    ...logs.map(x=>x.participant||"unknown"),
+    ...surveys.map(x=>x.participant||"unknown"),
+  ]);
   const success = tasks.filter(t=>t.success).length;
+  const durations = tasks.map(t=>Number(t.durationMs||0));
+  const surveyMeans = surveys.map(s=>Number(s.meanScore)).filter(Number.isFinite);
+
   const summary = {
     participants: participants.size,
     tasks: tasks.length,
     successRate: tasks.length ? success/tasks.length : 0,
-    meanDuration: mean(tasks.map(t=>t.durationMs||0)),
-    meanRetry: mean(tasks.map(t=>t.retryCount||0)),
+    meanDuration: mean(durations),
+    medianDuration: median(durations),
+    meanRetry: mean(tasks.map(t=>Number(t.retryCount||0))),
     manualRate: tasks.length ? tasks.filter(t=>t.manualFallbackUsed).length/tasks.length : 0,
-    repairs: tasks.reduce((a,t)=>a+(t.candidateRepairs||0),0),
+    repairTaskRate: tasks.length ? tasks.filter(t=>Number(t.candidateRepairs||0)>0).length/tasks.length : 0,
+    surveyMean: mean(surveyMeans),
   };
 
   metricsEl.innerHTML = [
@@ -61,9 +113,11 @@ function render() {
     ["완료 과제", summary.tasks],
     ["과제 성공률", pct(summary.successRate)],
     ["평균 수행시간", `${sec(summary.meanDuration)}초`],
+    ["중앙 수행시간", `${sec(summary.medianDuration)}초`],
     ["평균 재시도", summary.meanRetry.toFixed(2)],
+    ["후보 repair 과제", pct(summary.repairTaskRate)],
     ["수동입력 사용률", pct(summary.manualRate)],
-    ["후보 선택 횟수", summary.repairs],
+    ["사용성 평균", surveyMeans.length ? `${summary.surveyMean.toFixed(2)}/5` : "-"],
   ].map(([k,v])=>`<div class="metric"><span class="muted">${k}</span><b>${v}</b></div>`).join("");
 
   participantRows.innerHTML = participantStats().map(p=>`
@@ -81,22 +135,26 @@ function render() {
       <td>${ms1(t.meanInferenceLatencyMs)}</td>
     </tr>`).join("");
 
-  statusEl.textContent = ` ${logs.length}개 로그 · ${tasks.length}개 과제`;
+  renderSurvey();
+  statusEl.textContent = ` ${logs.length}개 로그 · ${surveys.length}개 설문 · ${tasks.length}개 과제`;
 }
 
 filesInput.addEventListener("change", async e => {
-  const next = [];
+  const nextLogs = [];
+  const nextSurveys = [];
   for (const file of e.target.files || []) {
     try {
       const data = JSON.parse(await file.text());
-      if (data.format !== "ieum-pilot-log-v1") throw new Error("지원하지 않는 로그 형식");
-      next.push(data);
+      if (data.format === "ieum-pilot-log-v1") nextLogs.push(data);
+      else if (data.format === "ieum-pilot-survey-v1") nextSurveys.push(data);
+      else throw new Error("지원하지 않는 JSON 형식");
     } catch (err) {
       console.error(file.name, err);
       alert(`${file.name}: ${err.message}`);
     }
   }
-  logs = next;
+  logs = nextLogs;
+  surveys = nextSurveys;
   render();
 });
 
@@ -105,24 +163,42 @@ function csvCell(v) {
   return /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
 }
 
-exportCsvBtn.addEventListener("click", () => {
-  const rows = [["participant","task_id","success","duration_ms","final_predictions","retry_count","candidate_repairs","manual_fallback","mean_inference_latency_ms"]];
-  for (const log of logs) {
-    for (const t of log.tasks || []) {
-      rows.push([
-        log.participant,t.id,t.success,t.durationMs,t.finalPredictions,t.retryCount,
-        t.candidateRepairs,t.manualFallbackUsed,t.meanInferenceLatencyMs
-      ]);
-    }
-  }
-  const text = rows.map(r=>r.map(csvCell).join(",")).join("\n");
-  const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
+function downloadText(text, filename, type) {
+  const blob = new Blob([text], {type});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `ieum_pilot_tasks_${Date.now()}.csv`;
+  a.download = filename;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+exportCsvBtn.addEventListener("click", () => {
+  const rows = [[
+    "record_type","participant","task_id_or_item","success_or_score","duration_ms",
+    "final_predictions","retry_count","candidate_repairs","manual_fallback",
+    "mean_inference_latency_ms","question"
+  ]];
+
+  for (const log of logs) {
+    for (const t of log.tasks || []) {
+      rows.push([
+        "task",log.participant,t.id,t.success,t.durationMs,t.finalPredictions,t.retryCount,
+        t.candidateRepairs,t.manualFallbackUsed,t.meanInferenceLatencyMs,""
+      ]);
+    }
+  }
+
+  for (const survey of surveys) {
+    for (const item of survey.scores || []) {
+      rows.push([
+        "survey",survey.participant,item.item,item.score,"","","","","","",item.question
+      ]);
+    }
+  }
+
+  const text = rows.map(r=>r.map(csvCell).join(",")).join("\n");
+  downloadText(text, `ieum_pilot_combined_${Date.now()}.csv`, "text/csv;charset=utf-8");
 });
 
 render();
