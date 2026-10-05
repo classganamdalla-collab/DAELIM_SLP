@@ -60,6 +60,7 @@ const manualText = $("manualText");
 const manualSpeakBtn = $("manualSpeakBtn");
 const studyControls = $("studyControls");
 const studyParticipant = $("studyParticipant");
+const studyTaskSelect = $("studyTaskSelect");
 const studyStartBtn = $("studyStartBtn");
 const studySuccessBtn = $("studySuccessBtn");
 const studyFailBtn = $("studyFailBtn");
@@ -887,20 +888,23 @@ function initStudyControls() {
   studyStartBtn.addEventListener("click", () => {
     clearSentence();
     hideRepairCandidates();
-    const id = studyLogger.startTask();
+    const id = studyLogger.startTask(studyTaskSelect.value);
     studyParticipant.textContent = `파일럿 · ${studyLogger.participant} · ${id}`;
+    studyTaskSelect.disabled = true;
     setTaskActive(true);
   });
 
   studySuccessBtn.addEventListener("click", () => {
     const task = studyLogger.finishTask(true);
     studyParticipant.textContent = `파일럿 · ${studyLogger.participant} · ${task?.id ?? ""} 성공`;
+    studyTaskSelect.disabled = false;
     setTaskActive(false);
   });
 
   studyFailBtn.addEventListener("click", () => {
     const task = studyLogger.finishTask(false);
     studyParticipant.textContent = `파일럿 · ${studyLogger.participant} · ${task?.id ?? ""} 실패`;
+    studyTaskSelect.disabled = false;
     setTaskActive(false);
   });
 
