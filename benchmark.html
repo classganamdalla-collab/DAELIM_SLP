@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이음 모델 벤치마크</title>
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f6f8fb;color:#172033}
+    main{max-width:920px;margin:40px auto;padding:0 20px}
+    .card{background:white;border:1px solid #e5e9f0;border-radius:16px;padding:22px;margin:16px 0}
+    button{border:0;border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer;background:#2563eb;color:white}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{text-align:left;border-bottom:1px solid #edf0f4;padding:10px 8px}
+    code,pre{background:#f1f4f8;border-radius:8px}
+    pre{padding:14px;overflow:auto;white-space:pre-wrap}
+    .muted{color:#667085}
+  </style>
+</head>
+<body>
+<main>
+  <h1>이음 추론 엔진 A/B 벤치마크</h1>
+  <p class="muted">TF.js FP32와 ONNX Runtime Web(WASM) FP32/INT8을 같은 입력으로 비교합니다. 이 페이지는 속도·수치 일치성 확인용이며 실제 수어 인식 정확도 검증을 대신하지 않습니다.</p>
+  <div class="card">
+    <button id="runBtn">벤치마크 실행</button>
+    <span id="status" class="muted"></span>
+  </div>
+  <div class="card">
+    <h2>결과</h2>
+    <table>
+      <thead><tr><th>엔진</th><th>평균 ms</th><th>중앙값 ms</th><th>p95 ms</th><th>모델 크기</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5">아직 실행하지 않았습니다.</td></tr></tbody>
+    </table>
+    <h3>출력 일치성</h3>
+    <pre id="parity">-</pre>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.min.js"></script>
+<script type="module" src="./benchmark.js"></script>
+</body>
+</html>
