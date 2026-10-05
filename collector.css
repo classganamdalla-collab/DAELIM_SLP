@@ -260,3 +260,37 @@ html, body {
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+/* v2 collector additions */
+.privacy-note {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(79,140,255,0.08);
+  border: 1px solid rgba(79,140,255,0.18);
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+.field-row:last-child { margin-bottom:0; }
+.note-input { width:100%; }
+select.note-input { cursor:pointer; }
+.schema-badge {
+  margin-top:8px;
+  font-size:10px;
+  line-height:1.4;
+  color:#64748b;
+}
+.delete-sample-btn {
+  background:#dc2626;
+  color:#fff;
+  border:0;
+  border-radius:8px;
+  padding:6px 10px;
+  cursor:pointer;
+  font-size:12px;
+}
+@media (max-width: 720px) {
+  .field-row { grid-template-columns:1fr; }
+}
