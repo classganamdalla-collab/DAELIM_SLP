@@ -125,7 +125,7 @@ python tools/export_v2_onnx.py
 
 ## 브라우저 성능 비교
 
-`benchmark.html`에서:
+`benchmark.html`에서 v1 런타임을, v2 학습 후에는 `benchmark-v2.html`에서 v2 FP32/INT8 런타임을 비교합니다.\n\n`benchmark.html`에서:
 
 - TensorFlow.js WebGL FP32
 - ONNX Runtime Web WASM FP32
@@ -162,7 +162,7 @@ python tools/export_v2_onnx.py
 ```
 index.html / script.js       실제 AAC 앱
 collector.html / collector.js 연구용 데이터 수집
-benchmark.html              브라우저 추론 벤치마크
+benchmark.html              v1 브라우저 추론 벤치마크\nbenchmark-v2.html           v2 ONNX FP32/INT8 브라우저 벤치마크
 pilot-dashboard.html        파일럿 결과 집계
 src/feature-schema.js       v1/v2 브라우저 특징 추출
 src/inference-engine.js     TF.js / ONNX 런타임
