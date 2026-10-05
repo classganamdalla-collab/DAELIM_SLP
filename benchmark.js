@@ -115,16 +115,39 @@ runBtn.addEventListener("click", async () => {
     await tf.setBackend("webgl");
     await tf.ready();
 
-    const [fp32File, int8File, tfModel] = await Promise.all([
+    const fetchStarted = performance.now();
+    const [fp32File, int8File] = await Promise.all([
       fetchBytes(ONNX_FP32_URL),
       fetchBytes(ONNX_INT8_URL),
-      tf.loadLayersModel(TFJS_URL),
     ]);
+    const fetchMs = performance.now() - fetchStarted;
 
-    const [fp32Session, int8Session] = await Promise.all([
-      ort.InferenceSession.create(fp32File.buf, { executionProviders: ["wasm"] }),
-      ort.InferenceSession.create(int8File.buf, { executionProviders: ["wasm"] }),
-    ]);
+    const tfLoadStart = performance.now();
+    const tfModel = await tf.loadLayersModel(TFJS_URL);
+    const tfLoadMs = performance.now() - tfLoadStart;
+
+    const fpLoadStart = performance.now();
+    const fp32Session = await ort.InferenceSession.create(fp32File.buf.slice(0), { executionProviders: ["wasm"] });
+    const fpLoadMs = performance.now() - fpLoadStart;
+
+    const iqLoadStart = performance.now();
+    const int8Session = await ort.InferenceSession.create(int8File.buf.slice(0), { executionProviders: ["wasm"] });
+    const iqLoadMs = performance.now() - iqLoadStart;
+
+    let webgpuSession = null;
+    let webgpuLoadMs = null;
+    let webgpuError = null;
+    if (navigator.gpu) {
+      try {
+        const t = performance.now();
+        webgpuSession = await ort.InferenceSession.create(fp32File.buf.slice(0), {
+          executionProviders: ["webgpu"],
+        });
+        webgpuLoadMs = performance.now() - t;
+      } catch (e) {
+        webgpuError = String(e?.message || e);
+      }
+    }
 
     const input = makeInput();
 
@@ -135,16 +158,29 @@ runBtn.addEventListener("click", async () => {
     statusEl.textContent = " ONNX INT8 측정 중...";
     const iqRes = await benchmarkOrt(int8Session, input);
 
+    let wgRes = null;
+    if (webgpuSession) {
+      statusEl.textContent = " ONNX WebGPU 측정 중...";
+      try {
+        wgRes = await benchmarkOrt(webgpuSession, input);
+      } catch (e) {
+        webgpuError = String(e?.message || e);
+      }
+    }
+
     const sTf = stats(tfRes.times), sFp = stats(fpRes.times), sIq = stats(iqRes.times);
     const dTfFp = maxAbsDiff(tfRes.output, fpRes.output);
     const dFpIq = maxAbsDiff(fpRes.output, iqRes.output);
 
-    rowsEl.innerHTML = [
-      ["TF.js FP32", sTf, NaN],
-      ["ONNX WASM FP32", sFp, fp32File.bytes],
-      ["ONNX WASM INT8", sIq, int8File.bytes],
-    ].map(([name, s, bytes]) =>
-      `<tr><td>${name}</td><td>${s.mean.toFixed(2)}</td><td>${s.median.toFixed(2)}</td><td>${s.p95.toFixed(2)}</td><td>${bytesText(bytes)}</td></tr>`
+    const rows = [
+      ["TF.js WebGL FP32", tfLoadMs, sTf, NaN],
+      ["ONNX WASM FP32", fpLoadMs + fetchMs, sFp, fp32File.bytes],
+      ["ONNX WASM INT8", iqLoadMs + fetchMs, sIq, int8File.bytes],
+    ];
+    if (wgRes) rows.push(["ONNX WebGPU FP32", webgpuLoadMs + fetchMs, stats(wgRes.times), fp32File.bytes]);
+
+    rowsEl.innerHTML = rows.map(([name, loadMs, s, bytes]) =>
+      `<tr><td>${name}</td><td>${Number(loadMs).toFixed(1)}</td><td>${s.mean.toFixed(2)}</td><td>${s.median.toFixed(2)}</td><td>${s.p95.toFixed(2)}</td><td>${bytesText(bytes)}</td></tr>`
     ).join("");
 
     parityEl.textContent = JSON.stringify({
@@ -157,6 +193,11 @@ runBtn.addEventListener("click", async () => {
         mean_abs_error: dFpIq.mean,
         max_abs_error: dFpIq.max,
         argmax_match: argmax(fpRes.output) === argmax(iqRes.output),
+      },
+      webgpu: {
+        available: Boolean(navigator.gpu),
+        session_created: Boolean(webgpuSession),
+        error: webgpuError,
       },
       note: "합성 입력의 수치 비교입니다. 실제 인식 정확도는 별도 파일럿/검증 데이터로 측정해야 합니다."
     }, null, 2);
