@@ -499,3 +499,247 @@ html, body {
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: rgba(30,42,58,0.15); border-radius: 4px; }
+
+/* ── 2026 contest upgrade ── */
+.start-description {
+  max-width: 520px;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  word-break: keep-all;
+}
+.start-model-badge {
+  margin-top: 8px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(79,182,245,0.25);
+  background: rgba(255,255,255,0.72);
+  color: rgba(30,42,58,0.62);
+  font-size: 11px;
+  font-weight: 700;
+}
+.start-links {
+  display:flex;
+  gap:16px;
+  margin-top:10px;
+  font-size:11px;
+}
+.start-links a {
+  color: var(--muted);
+  text-decoration:none;
+  border-bottom:1px solid rgba(30,42,58,0.16);
+}
+.start-links a:hover { color:var(--blue); }
+
+.hud-brand > div {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.context-chip {
+  display:inline-flex;
+  align-items:center;
+  padding:3px 8px;
+  border-radius:999px;
+  font-size:10px;
+  color:var(--blue);
+  background:rgba(79,182,245,0.10);
+  border:1px solid rgba(79,182,245,0.18);
+}
+.hud-controls {
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.repair-candidates {
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid rgba(30,42,58,0.08);
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:6px;
+}
+.repair-label {
+  width:100%;
+  font-size:10px;
+  color:var(--muted);
+  margin-bottom:2px;
+}
+.repair-btn {
+  border:1px solid rgba(79,182,245,0.28);
+  background:rgba(79,182,245,0.09);
+  color:var(--navy);
+  border-radius:999px;
+  padding:6px 10px;
+  font-family:'Noto Sans KR', sans-serif;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+}
+.repair-btn:hover { background:rgba(79,182,245,0.18); }
+
+.enhanced-bottom { align-items:flex-end; }
+.sentence-stack {
+  min-width:0;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
+.sentence-natural {
+  min-height:18px;
+  font-size:13px;
+  font-weight:600;
+  color:rgba(30,42,58,0.62);
+  line-height:1.45;
+}
+.sentence-natural:not(:empty)::before {
+  content:"전달 문장  ";
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.05em;
+  color:rgba(30,42,58,0.32);
+}
+
+.manual-panel {
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(18,28,42,0.28);
+  backdrop-filter:blur(8px);
+}
+.manual-card {
+  width:min(560px, 100%);
+  background:rgba(255,255,255,0.96);
+  border:1px solid rgba(170,200,225,0.45);
+  border-radius:24px;
+  padding:22px;
+  box-shadow:0 24px 80px rgba(30,42,58,0.22);
+}
+.manual-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:16px;
+}
+.manual-title { font-size:20px; font-weight:900; }
+.manual-sub {
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.5;
+}
+.manual-close {
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:1px solid var(--border);
+  background:white;
+  color:var(--muted);
+  font-size:22px;
+  cursor:pointer;
+}
+#manualText {
+  width:100%;
+  resize:vertical;
+  min-height:92px;
+  border:1px solid rgba(170,200,225,0.55);
+  border-radius:14px;
+  padding:13px 14px;
+  font:600 16px/1.5 'Noto Sans KR', sans-serif;
+  color:var(--navy);
+  outline:none;
+}
+#manualText:focus {
+  border-color:rgba(79,182,245,0.75);
+  box-shadow:0 0 0 3px rgba(79,182,245,0.10);
+}
+.quick-phrases {
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:12px 0;
+}
+.quick-phrase {
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:999px;
+  padding:7px 11px;
+  color:var(--navy);
+  font:600 12px 'Noto Sans KR', sans-serif;
+  cursor:pointer;
+}
+.quick-phrase:hover { background:rgba(79,182,245,0.08); }
+.manual-speak {
+  width:100%;
+  border:0;
+  border-radius:13px;
+  padding:12px 16px;
+  background:linear-gradient(135deg,var(--sky),var(--mint));
+  color:#fff;
+  font:800 14px 'Noto Sans KR', sans-serif;
+  cursor:pointer;
+}
+
+.privacy-hint {
+  position:absolute;
+  z-index:9;
+  right:22px;
+  bottom:101px;
+  max-width:360px;
+  padding:6px 10px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.66);
+  backdrop-filter:blur(10px);
+  color:rgba(30,42,58,0.42);
+  font-size:9px;
+  line-height:1.45;
+  pointer-events:none;
+}
+
+.hud-btn:disabled {
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+@media (max-width: 1120px) {
+  .top-hud { grid-template-columns:auto 1fr; }
+  .hud-center { display:none; }
+  .hud-controls { max-width:650px; }
+}
+
+@media (max-width: 760px) {
+  .context-chip { display:none; }
+  .hud-controls .hud-btn {
+    padding:7px 9px;
+    font-size:11px;
+  }
+  .privacy-hint { display:none; }
+  .sentence-natural { font-size:11px; }
+}
+
+@media (max-width: 560px) {
+  .top-hud {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+  }
+  .hud-brand .brand-name { display:none; }
+  .hud-controls {
+    gap:4px;
+    max-width:calc(100vw - 52px);
+  }
+  #autoSpeakToggle, #autoAddToggle {
+    display:none;
+  }
+  .start-description { padding:0 22px; font-size:12px; }
+  .start-links { flex-direction:column; gap:6px; }
+  .manual-card { padding:18px; border-radius:20px; }
+}
