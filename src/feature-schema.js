@@ -33,6 +33,11 @@ export const FEATURE_SCHEMAS = {
     featureDim: 190,
     description: "양손 정규화 + 얼굴 상대 위치/표정 + 선택적 blendshape + 존재 마스크",
   },
+  v2Base8: {
+    id: "ieum_v2_base8_190",
+    featureDim: 190,
+    description: "기존 2.0-facemesh 호환: 양손 + 기존 얼굴 핵심 8점, 확장 얼굴/blendshape는 비활성화",
+  },
 };
 
 const ZERO_POINT = Object.freeze({ x: 0, y: 0, z: 0 });
@@ -197,7 +202,11 @@ function encodeHand(hand, nose, fScale, facePresent) {
   return out;
 }
 
-function encodeFace(faceMap, blendshapes, present) {
+function hasFacePoints(faceMap, ...ids) {
+  return ids.every(id => Object.prototype.hasOwnProperty.call(faceMap, String(id)));
+}
+
+function encodeFace(faceMap, blendshapes, present, profile = "full") {
   if (!present) return new Array(46).fill(0);
 
   const nose = faceMap["4"] ?? ZERO_POINT;
@@ -210,22 +219,48 @@ function encodeFace(faceMap, blendshapes, present) {
     out.push(safeDiv(d[0], scale), safeDiv(d[1], scale), safeDiv(d[2], scale));
   }
 
-  const mouthOpen = safeDiv(dist2(faceMap["13"], faceMap["14"]), scale);
-  const mouthWidth = safeDiv(dist2(faceMap["61"], faceMap["291"]), scale);
+  // Old 2.0-facemesh JSON only contains FACE_BASE_POINTS. Never calculate
+  // "missing" extended-face metrics against a synthetic zero point: that
+  // creates false non-zero features and a train/runtime distribution shift.
+  let mouthOpen = 0;
+  let mouthWidth = 0;
+  let leftEyeOpen = 0;
+  let rightEyeOpen = 0;
+  let leftBrowRaise = 0;
+  let rightBrowRaise = 0;
 
-  const leftEyeWidth = Math.max(dist2(faceMap["33"], faceMap["133"]), 1e-4);
-  const rightEyeWidth = Math.max(dist2(faceMap["263"], faceMap["362"]), 1e-4);
-  const leftEyeOpen = safeDiv(dist2(faceMap["159"], faceMap["145"]), leftEyeWidth);
-  const rightEyeOpen = safeDiv(dist2(faceMap["386"], faceMap["374"]), rightEyeWidth);
+  if (profile !== "base8") {
+    if (hasFacePoints(faceMap, 13, 14)) {
+      mouthOpen = safeDiv(dist2(faceMap["13"], faceMap["14"]), scale);
+    }
+    if (hasFacePoints(faceMap, 61, 291)) {
+      mouthWidth = safeDiv(dist2(faceMap["61"], faceMap["291"]), scale);
+    }
+    if (hasFacePoints(faceMap, 33, 133, 159, 145)) {
+      const leftEyeWidth = Math.max(dist2(faceMap["33"], faceMap["133"]), 1e-4);
+      leftEyeOpen = safeDiv(dist2(faceMap["159"], faceMap["145"]), leftEyeWidth);
+    }
+    if (hasFacePoints(faceMap, 263, 362, 386, 374)) {
+      const rightEyeWidth = Math.max(dist2(faceMap["263"], faceMap["362"]), 1e-4);
+      rightEyeOpen = safeDiv(dist2(faceMap["386"], faceMap["374"]), rightEyeWidth);
+    }
+    if (hasFacePoints(faceMap, 105, 159)) {
+      leftBrowRaise = safeDiv(dist2(faceMap["105"], faceMap["159"]), scale);
+    }
+    if (hasFacePoints(faceMap, 334, 386)) {
+      rightBrowRaise = safeDiv(dist2(faceMap["334"], faceMap["386"]), scale);
+    }
+  }
 
-  const leftBrowRaise = safeDiv(dist2(faceMap["105"], faceMap["159"]), scale);
-  const rightBrowRaise = safeDiv(dist2(faceMap["334"], faceMap["386"]), scale);
-
-  const eyeA = faceMap["33"] ?? ZERO_POINT;
-  const eyeB = faceMap["263"] ?? ZERO_POINT;
-  const dx = finite(eyeB.x) - finite(eyeA.x);
-  const dy = finite(eyeB.y) - finite(eyeA.y);
-  const angle = Math.atan2(dy, dx);
+  let sinRoll = 0;
+  let cosRoll = 0;
+  if (hasFacePoints(faceMap, 33, 263)) {
+    const eyeA = faceMap["33"];
+    const eyeB = faceMap["263"];
+    const angle = Math.atan2(finite(eyeB.y) - finite(eyeA.y), finite(eyeB.x) - finite(eyeA.x));
+    sinRoll = Math.sin(angle);
+    cosRoll = Math.cos(angle);
+  }
 
   out.push(
     mouthOpen,
@@ -234,18 +269,18 @@ function encodeFace(faceMap, blendshapes, present) {
     rightEyeOpen,
     leftBrowRaise,
     rightBrowRaise,
-    Math.sin(angle),
-    Math.cos(angle)
+    sinRoll,
+    cosRoll
   );
 
   for (const name of V2_BLENDSHAPES) {
-    out.push(finite(blendshapes?.[name]));
+    out.push(profile === "base8" ? 0 : finite(blendshapes?.[name]));
   }
 
   return out;
 }
 
-export function extractV2FeaturesFromRawFrame(frame) {
+export function extractV2FeaturesFromRawFrame(frame, { profile = "full" } = {}) {
   const hands = frame?.hands ?? [];
   const { left, right } = chooseHandSlots(hands);
   const fmap = baseFaceMap(frame);
@@ -268,7 +303,7 @@ export function extractV2FeaturesFromRawFrame(frame) {
     features.push(0, 0, 0);
   }
 
-  features.push(...encodeFace(fmap, frame?.faceBlendshapes ?? {}, facePresent));
+  features.push(...encodeFace(fmap, frame?.faceBlendshapes ?? {}, facePresent, profile));
   features.push(left ? 1 : 0, right ? 1 : 0, facePresent ? 1 : 0);
 
   if (features.length !== FEATURE_SCHEMAS.v2.featureDim) {
@@ -277,7 +312,7 @@ export function extractV2FeaturesFromRawFrame(frame) {
   return features;
 }
 
-export function extractV2FeaturesFromResults(handResults, faceResults) {
+export function extractV2FeaturesFromResults(handResults, faceResults, { profile = "full" } = {}) {
   const face = cloneFaceDataFromResults(faceResults);
   return extractV2FeaturesFromRawFrame({
     hands: cloneHandsFromResults(handResults),
@@ -285,7 +320,7 @@ export function extractV2FeaturesFromResults(handResults, faceResults) {
     faceExtended: face.extended,
     faceBlendshapes: face.blendshapes,
     facePresent: face.present,
-  });
+  }, { profile });
 }
 
 export function extractV1FeaturesFromResults(handResults, faceResults) {
