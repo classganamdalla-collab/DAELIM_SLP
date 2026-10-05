@@ -14,6 +14,7 @@ V2_BLENDSHAPES = [
 ]
 V2_FEATURE_DIM = 190
 V2_SCHEMA_ID = "ieum_v2_190"
+V2_BASE8_SCHEMA_ID = "ieum_v2_base8_190"
 
 
 def _f(v: Any) -> float:
@@ -122,7 +123,16 @@ def _encode_hand(hand: dict | None, nose: np.ndarray, fscale: float, face_presen
     return out
 
 
-def _encode_face(fmap: dict[str, dict], blend: dict[str, Any], present: bool) -> list[float]:
+def _has_face_points(fmap: dict[str, dict], *ids: int) -> bool:
+    return all(str(idx) in fmap for idx in ids)
+
+
+def _encode_face(
+    fmap: dict[str, dict],
+    blend: dict[str, Any],
+    present: bool,
+    profile: str = "full",
+) -> list[float]:
     if not present:
         return [0.0] * 46
 
@@ -134,28 +144,45 @@ def _encode_face(fmap: dict[str, dict], blend: dict[str, Any], present: bool) ->
         d = (_pt(fmap.get(str(idx))) - nose) / scale
         out.extend(map(float, d))
 
-    mouth_open = _dist2(fmap.get("13"), fmap.get("14")) / scale
-    mouth_width = _dist2(fmap.get("61"), fmap.get("291")) / scale
-    left_eye_width = max(_dist2(fmap.get("33"), fmap.get("133")), 1e-4)
-    right_eye_width = max(_dist2(fmap.get("263"), fmap.get("362")), 1e-4)
-    left_eye_open = _dist2(fmap.get("159"), fmap.get("145")) / left_eye_width
-    right_eye_open = _dist2(fmap.get("386"), fmap.get("374")) / right_eye_width
-    left_brow_raise = _dist2(fmap.get("105"), fmap.get("159")) / scale
-    right_brow_raise = _dist2(fmap.get("334"), fmap.get("386")) / scale
+    mouth_open = mouth_width = 0.0
+    left_eye_open = right_eye_open = 0.0
+    left_brow_raise = right_brow_raise = 0.0
 
-    eye_a = _pt(fmap.get("33"))
-    eye_b = _pt(fmap.get("263"))
-    angle = math.atan2(float(eye_b[1] - eye_a[1]), float(eye_b[0] - eye_a[0]))
+    if profile != "base8":
+        if _has_face_points(fmap, 13, 14):
+            mouth_open = _dist2(fmap["13"], fmap["14"]) / scale
+        if _has_face_points(fmap, 61, 291):
+            mouth_width = _dist2(fmap["61"], fmap["291"]) / scale
+        if _has_face_points(fmap, 33, 133, 159, 145):
+            left_eye_width = max(_dist2(fmap["33"], fmap["133"]), 1e-4)
+            left_eye_open = _dist2(fmap["159"], fmap["145"]) / left_eye_width
+        if _has_face_points(fmap, 263, 362, 386, 374):
+            right_eye_width = max(_dist2(fmap["263"], fmap["362"]), 1e-4)
+            right_eye_open = _dist2(fmap["386"], fmap["374"]) / right_eye_width
+        if _has_face_points(fmap, 105, 159):
+            left_brow_raise = _dist2(fmap["105"], fmap["159"]) / scale
+        if _has_face_points(fmap, 334, 386):
+            right_brow_raise = _dist2(fmap["334"], fmap["386"]) / scale
+
+    sin_roll = cos_roll = 0.0
+    if _has_face_points(fmap, 33, 263):
+        eye_a = _pt(fmap["33"])
+        eye_b = _pt(fmap["263"])
+        angle = math.atan2(float(eye_b[1] - eye_a[1]), float(eye_b[0] - eye_a[0]))
+        sin_roll, cos_roll = math.sin(angle), math.cos(angle)
 
     out.extend([
         mouth_open, mouth_width, left_eye_open, right_eye_open,
-        left_brow_raise, right_brow_raise, math.sin(angle), math.cos(angle),
+        left_brow_raise, right_brow_raise, sin_roll, cos_roll,
     ])
-    out.extend(_f((blend or {}).get(name)) for name in V2_BLENDSHAPES)
+    out.extend(
+        0.0 if profile == "base8" else _f((blend or {}).get(name))
+        for name in V2_BLENDSHAPES
+    )
     return out
 
 
-def extract_v2_frame(frame: dict) -> np.ndarray:
+def extract_v2_frame(frame: dict, profile: str = "full") -> np.ndarray:
     hands = frame.get("hands") or []
     left, right = _choose_hands(hands)
     fmap = _face_map(frame)
@@ -175,7 +202,7 @@ def extract_v2_frame(frame: dict) -> np.ndarray:
     else:
         features.extend([0.0, 0.0, 0.0])
 
-    features.extend(_encode_face(fmap, frame.get("faceBlendshapes") or {}, face_present))
+    features.extend(_encode_face(fmap, frame.get("faceBlendshapes") or {}, face_present, profile))
     features.extend([1.0 if left else 0.0, 1.0 if right else 0.0, 1.0 if face_present else 0.0])
 
     arr = np.asarray(features, dtype=np.float32)
@@ -186,8 +213,8 @@ def extract_v2_frame(frame: dict) -> np.ndarray:
     return arr
 
 
-def pad_or_trim(frames: list[dict], max_len: int = 100) -> tuple[np.ndarray, int]:
-    seq = [extract_v2_frame(f) for f in frames[:max_len]]
+def pad_or_trim(frames: list[dict], max_len: int = 100, profile: str = "full") -> tuple[np.ndarray, int]:
+    seq = [extract_v2_frame(f, profile=profile) for f in frames[:max_len]]
     valid = len(seq)
     out = np.zeros((max_len, V2_FEATURE_DIM), dtype=np.float32)
     if seq:
