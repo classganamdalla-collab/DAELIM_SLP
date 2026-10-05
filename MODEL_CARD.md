@@ -171,3 +171,19 @@ INT8은 최소한:
 피해야 할 표현:
 
 > 한국수어를 99% 정확도로 번역하는 시스템
+
+
+## 15. 기존 2.0-facemesh 데이터 재사용
+
+2026년 6월 수집기의 기존 JSON은 최대 2개의 손 landmark, handedness, 얼굴 핵심 8점을 이미 저장합니다. 확장 얼굴 landmark와 Face Blendshape는 없으므로 새 데이터와 동일한 full 프로필로 섞지 않습니다.
+
+기존 데이터 재학습용 프로필:
+- feature schema: `ieum_v2_base8_190`
+- 양손 local landmark / palm normal / 얼굴 기준 손 위치 사용
+- 양손 상대 위치 사용
+- 기존 얼굴 핵심 8점 사용
+- 핵심 8점으로 계산 가능한 head roll 사용
+- 확장 landmark가 필요한 입·눈·눈썹 파생 특징은 0으로 고정
+- Face Blendshape는 0으로 고정
+
+브라우저 추론에서도 metadata의 `feature_profile=base8`을 읽어 동일한 특징만 사용하므로 학습/배포 입력 분포 불일치를 방지합니다.
