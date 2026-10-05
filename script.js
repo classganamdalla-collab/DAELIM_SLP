@@ -740,6 +740,8 @@ startBtn.addEventListener("click", () => {
   if (appStarted) {
     startBtn.textContent = "■";
     startBtn.classList.add("recording");
+    startBtn.setAttribute("aria-pressed", "true");
+    startBtn.setAttribute("aria-label", "수어 인식 중지");
     statusDot.classList.add("active");
     runStatus.textContent = autoAddEnabled ? "인식 중" : "인식 중 · 수동추가";
     currentPrediction.textContent = "—";
@@ -751,6 +753,8 @@ startBtn.addEventListener("click", () => {
     gestureBuffer = [];
     startBtn.textContent = "▶";
     startBtn.classList.remove("recording");
+    startBtn.setAttribute("aria-pressed", "false");
+    startBtn.setAttribute("aria-label", "수어 인식 시작");
     statusDot.classList.remove("active");
     runStatus.textContent = "중지됨";
     currentPrediction.textContent = "—";
@@ -769,6 +773,7 @@ autoSpeakToggle.addEventListener("click", () => {
   autoSpeakToggle.classList.toggle("accent", autoSpeakEnabled);
   autoSpeakToggle.classList.toggle("ghost", !autoSpeakEnabled);
   autoSpeakToggle.textContent = autoSpeakEnabled ? "자동읽기 ON" : "자동읽기";
+  autoSpeakToggle.setAttribute("aria-pressed", String(autoSpeakEnabled));
   if (!autoSpeakEnabled) clearTimeout(autoSpeakTimer);
 });
 
@@ -777,6 +782,7 @@ autoAddToggle.addEventListener("click", () => {
   autoAddToggle.classList.toggle("accent", autoAddEnabled);
   autoAddToggle.classList.toggle("ghost", !autoAddEnabled);
   autoAddToggle.textContent = autoAddEnabled ? "자동추가" : "수동추가";
+  autoAddToggle.setAttribute("aria-pressed", String(autoAddEnabled));
   if (appStarted) runStatus.textContent = autoAddEnabled ? "인식 중" : "인식 중 · 수동추가";
 });
 
@@ -963,6 +969,8 @@ brandBtn.addEventListener("click", () => {
   gestureBuffer = [];
   startBtn.textContent = "▶";
   startBtn.classList.remove("recording");
+  startBtn.setAttribute("aria-pressed", "false");
+  startBtn.setAttribute("aria-label", "수어 인식 시작");
   statusDot.classList.remove("active");
 
   if (isListening) toggleListening();
