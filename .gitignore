@@ -1,0 +1,10 @@
+# Participant/raw study data
+data/raw/*.json
+data/raw/**/*.json
+!data/raw/.gitkeep
+
+# Local training artifacts
+training_runs/
+__pycache__/
+*.pyc
+.DS_Store
