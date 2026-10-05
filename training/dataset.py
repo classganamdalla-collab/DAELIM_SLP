@@ -49,6 +49,7 @@ def load_dataset(
     max_len: int = 100,
     min_frames: int = 15,
     allowed_labels: list[str] | None = None,
+    feature_profile: str = "full",
 ) -> DatasetBundle:
     paths = _expand_patterns(patterns)
     if not paths:
@@ -83,7 +84,7 @@ def load_dataset(
                 skipped.append({"id": sid, "reason": "too-short", "frames": len(frames), "source": path.name})
                 continue
 
-            seq, _ = pad_or_trim(frames, max_len=max_len)
+            seq, _ = pad_or_trim(frames, max_len=max_len, profile=feature_profile)
             sequences.append(seq)
             labels.append(label)
 
