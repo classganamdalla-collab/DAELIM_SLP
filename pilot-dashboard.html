@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이음 파일럿 결과 대시보드</title>
+  <style>
+    body{font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;margin:0;background:#f6f8fb;color:#172033}
+    main{max-width:1100px;margin:36px auto;padding:0 18px}
+    h1{margin-bottom:6px} .muted{color:#667085;line-height:1.6}
+    .card{background:#fff;border:1px solid #e5e9f0;border-radius:16px;padding:20px;margin:16px 0;overflow:auto}
+    button,label.file{border:0;border-radius:11px;padding:10px 14px;font-weight:700;cursor:pointer;background:#2563eb;color:#fff;display:inline-block}
+    button.secondary{background:#fff;color:#344054;border:1px solid #d0d5dd}
+    input[type=file]{display:none}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .metric{padding:14px;border:1px solid #eaecf0;border-radius:12px}.metric b{display:block;font-size:24px;margin-top:4px}
+    table{width:100%;border-collapse:collapse;font-size:13px} th,td{text-align:left;padding:9px 8px;border-bottom:1px solid #eef1f5;white-space:nowrap}
+    @media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>이음 파일럿 결과 대시보드</h1>
+  <p class="muted">앱을 <code>?study=1&participant=P01</code>로 실행한 뒤 내보낸 파일럿 로그를 불러옵니다. 이 대시보드는 과제 성공률·수행시간·재시도·수동 대체수단 사용을 집계하며, 모델의 임상적 효과를 자동으로 증명하지 않습니다.</p>
+
+  <div class="card">
+    <label class="file">파일럿 JSON 불러오기<input id="files" type="file" accept=".json" multiple></label>
+    <button id="exportCsv" class="secondary">CSV 내보내기</button>
+    <span id="status" class="muted"></span>
+  </div>
+
+  <div id="metrics" class="grid"></div>
+
+  <div class="card">
+    <h2>참여자별</h2>
+    <table><thead><tr><th>참여자</th><th>과제</th><th>성공률</th><th>평균 시간(s)</th><th>평균 재시도</th><th>수동입력 과제</th><th>후보선택</th><th>평균 추론(ms)</th></tr></thead><tbody id="participantRows"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>과제별 원자료</h2>
+    <table><thead><tr><th>참여자</th><th>과제</th><th>성공</th><th>시간(s)</th><th>최종판정</th><th>재시도</th><th>후보선택</th><th>수동입력</th><th>평균 추론(ms)</th></tr></thead><tbody id="taskRows"></tbody></table>
+  </div>
+</main>
+<script type="module" src="pilot-dashboard.js"></script>
+</body>
+</html>
