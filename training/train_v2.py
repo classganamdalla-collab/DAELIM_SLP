@@ -105,6 +105,56 @@ def evaluate(model: keras.Model, X: np.ndarray, y: np.ndarray, labels: list[str]
     }
 
 
+def calibrate_rejection(probs: np.ndarray, y_true: np.ndarray, target_accuracy: float = 0.95) -> dict:
+    order = np.argsort(probs, axis=1)
+    top1 = order[:, -1]
+    top2 = order[:, -2]
+    rows = np.arange(len(probs))
+    scores = probs[rows, top1]
+    margins = scores - probs[rows, top2]
+    correct = top1 == y_true
+
+    feasible = []
+    fallback = []
+    for score_threshold in np.arange(0.50, 0.951, 0.025):
+        for margin_threshold in np.arange(0.05, 0.401, 0.025):
+            accepted = (scores >= score_threshold) & (margins >= margin_threshold)
+            coverage = float(accepted.mean())
+            if not accepted.any():
+                continue
+            selective_accuracy = float(correct[accepted].mean())
+            item = {
+                "min_score": round(float(score_threshold), 3),
+                "min_margin": round(float(margin_threshold), 3),
+                "coverage": coverage,
+                "selective_accuracy": selective_accuracy,
+                "accepted_samples": int(accepted.sum()),
+                "validation_samples": int(len(y_true)),
+            }
+            fallback.append((selective_accuracy * max(coverage, 1e-6), item))
+            if selective_accuracy >= target_accuracy:
+                feasible.append((coverage, selective_accuracy, item))
+
+    if feasible:
+        _, _, best = max(feasible, key=lambda x: (x[0], x[1]))
+        best["selection_rule"] = f"maximum coverage with selective accuracy >= {target_accuracy:.2f}"
+    elif fallback:
+        _, best = max(fallback, key=lambda x: x[0])
+        best["selection_rule"] = "fallback: maximize selective_accuracy × coverage"
+    else:
+        best = {
+            "min_score": 0.70,
+            "min_margin": 0.20,
+            "coverage": 0.0,
+            "selective_accuracy": 0.0,
+            "accepted_samples": 0,
+            "validation_samples": int(len(y_true)),
+            "selection_rule": "fallback defaults; no accepted validation samples",
+        }
+    best["target_selective_accuracy"] = target_accuracy
+    return best
+
+
 def write_confusion(path: Path, cm: np.ndarray, labels: list[str]) -> None:
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
@@ -232,6 +282,8 @@ def main() -> None:
 
     assert best_name is not None
     best_model = keras.models.load_model(candidates_dir / f"{best_name}.keras", compile=False)
+    best_val = evaluate(best_model, X_val, y_val, kept_labels)
+    calibration = calibrate_rejection(best_val["probs"], y_val, target_accuracy=0.95)
     test = evaluate(best_model, X_test, y_test, kept_labels)
 
     best_model.save(out_dir / "best_model.keras")
@@ -243,6 +295,10 @@ def main() -> None:
     write_confusion(out_dir / "confusion_matrix.csv", test["confusion"], kept_labels)
     (out_dir / "classification_report.json").write_text(
         json.dumps(test["report"], ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (out_dir / "calibration.json").write_text(
+        json.dumps(calibration, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
@@ -265,6 +321,7 @@ def main() -> None:
             "macro_f1": test["macro_f1"],
             "weighted_f1": test["weighted_f1"],
         },
+        "rejection_calibration": calibration,
         "split_strategy": split_strategy,
         "labels": kept_labels,
         "class_counts_before_filter": dict(counts),
@@ -295,6 +352,7 @@ def main() -> None:
         "dataset_fingerprint_sha256": bundle.fingerprint,
         "test_accuracy": test["accuracy"],
         "test_macro_f1": test["macro_f1"],
+        "rejection": calibration,
         "created_with": {
             "keras": keras.__version__,
         },
