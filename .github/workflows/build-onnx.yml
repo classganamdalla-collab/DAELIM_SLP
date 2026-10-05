@@ -73,7 +73,25 @@ jobs:
           git add model/onnx/
           if git diff --cached --quiet; then
             echo "No ONNX artifact changes to commit."
-          else
-            git commit -m "build: generate ONNX FP32 and INT8 variants"
-            git push
+            exit 0
           fi
+
+          git commit -m "build: generate ONNX FP32 and INT8 variants"
+
+          # Development commits may land while this relatively slow conversion job runs.
+          # Rebase the generated-artifact-only commit on the newest branch head before push.
+          for attempt in 1 2 3; do
+            git fetch origin "$GITHUB_REF_NAME"
+            if git rebase "origin/$GITHUB_REF_NAME"; then
+              if git push origin "HEAD:$GITHUB_REF_NAME"; then
+                exit 0
+              fi
+            else
+              git rebase --abort || true
+            fi
+            echo "Push attempt $attempt failed; retrying..."
+            sleep $((attempt * 2))
+          done
+
+          echo "Could not publish generated ONNX artifacts after 3 attempts."
+          exit 1
