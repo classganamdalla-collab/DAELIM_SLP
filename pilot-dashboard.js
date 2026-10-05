@@ -27,10 +27,27 @@ function esc(value) {
   })[ch]);
 }
 
+function modeOf(t) {
+  if (!t?.success) return "failed";
+  if (t.manualFallbackUsed) return "fallback";
+  if (Number(t.candidateRepairs || 0) > 0) return "repair";
+  return "ai-only";
+}
+
+function modeKo(mode) {
+  return ({
+    "ai-only":"AI 단독",
+    "repair":"후보 repair",
+    "fallback":"직접입력 fallback",
+    "failed":"실패",
+  })[mode] || mode;
+}
+
 function allTasks() {
   return logs.flatMap(log => (log.tasks || []).map(t => ({
     ...t,
-    participant: log.participant || "unknown"
+    participant: log.participant || "unknown",
+    completionMode: t.completionMode || modeOf(t),
   })));
 }
 
@@ -42,17 +59,18 @@ function participantStats() {
     map.get(p).push(log);
   }
   return [...map.entries()].map(([participant, items]) => {
-    const tasks = items.flatMap(x => x.tasks || []);
+    const tasks = items.flatMap(x => x.tasks || []).map(t => ({...t, completionMode:t.completionMode || modeOf(t)}));
     const inferences = items.map(x => x.summary?.meanInferenceLatencyMs || 0).filter(Boolean);
     const success = tasks.filter(t => t.success).length;
     return {
       participant,
       tasks: tasks.length,
       successRate: tasks.length ? success/tasks.length : 0,
+      aiOnlyRate: tasks.length ? tasks.filter(t=>t.completionMode==="ai-only").length/tasks.length : 0,
+      repairRate: tasks.length ? tasks.filter(t=>t.completionMode==="repair").length/tasks.length : 0,
+      fallbackRate: tasks.length ? tasks.filter(t=>t.completionMode==="fallback").length/tasks.length : 0,
       meanDuration: mean(tasks.map(t => t.durationMs || 0)),
       meanRetry: mean(tasks.map(t => t.retryCount || 0)),
-      manual: tasks.filter(t => t.manualFallbackUsed).length,
-      repairs: tasks.reduce((a,t)=>a+(t.candidateRepairs||0),0),
       inference: mean(inferences),
     };
   });
@@ -100,37 +118,39 @@ function render() {
     participants: participants.size,
     tasks: tasks.length,
     successRate: tasks.length ? success/tasks.length : 0,
+    aiOnlyRate: tasks.length ? tasks.filter(t=>t.completionMode==="ai-only").length/tasks.length : 0,
+    repairSuccessRate: tasks.length ? tasks.filter(t=>t.completionMode==="repair").length/tasks.length : 0,
+    fallbackSuccessRate: tasks.length ? tasks.filter(t=>t.completionMode==="fallback").length/tasks.length : 0,
     meanDuration: mean(durations),
     medianDuration: median(durations),
     meanRetry: mean(tasks.map(t=>Number(t.retryCount||0))),
-    manualRate: tasks.length ? tasks.filter(t=>t.manualFallbackUsed).length/tasks.length : 0,
-    repairTaskRate: tasks.length ? tasks.filter(t=>Number(t.candidateRepairs||0)>0).length/tasks.length : 0,
     surveyMean: mean(surveyMeans),
   };
 
   metricsEl.innerHTML = [
     ["참여자", summary.participants],
     ["완료 과제", summary.tasks],
-    ["과제 성공률", pct(summary.successRate)],
+    ["기능적 성공률", pct(summary.successRate)],
+    ["AI 단독 성공률", pct(summary.aiOnlyRate)],
+    ["후보 repair 성공", pct(summary.repairSuccessRate)],
+    ["직접입력 성공", pct(summary.fallbackSuccessRate)],
     ["평균 수행시간", `${sec(summary.meanDuration)}초`],
     ["중앙 수행시간", `${sec(summary.medianDuration)}초`],
     ["평균 재시도", summary.meanRetry.toFixed(2)],
-    ["후보 repair 과제", pct(summary.repairTaskRate)],
-    ["수동입력 사용률", pct(summary.manualRate)],
     ["사용성 평균", surveyMeans.length ? `${summary.surveyMean.toFixed(2)}/5` : "-"],
   ].map(([k,v])=>`<div class="metric"><span class="muted">${k}</span><b>${v}</b></div>`).join("");
 
   participantRows.innerHTML = participantStats().map(p=>`
     <tr>
       <td>${esc(p.participant)}</td><td>${p.tasks}</td><td>${pct(p.successRate)}</td>
-      <td>${sec(p.meanDuration)}</td><td>${p.meanRetry.toFixed(2)}</td><td>${p.manual}</td>
-      <td>${p.repairs}</td><td>${ms1(p.inference)}</td>
+      <td>${pct(p.aiOnlyRate)}</td><td>${pct(p.repairRate)}</td><td>${pct(p.fallbackRate)}</td>
+      <td>${sec(p.meanDuration)}</td><td>${p.meanRetry.toFixed(2)}</td><td>${ms1(p.inference)}</td>
     </tr>`).join("");
 
   taskRows.innerHTML = tasks.map(t=>`
     <tr>
       <td>${esc(t.participant)}</td><td>${esc(t.id)}</td><td>${t.success?"성공":"실패"}</td>
-      <td>${sec(t.durationMs||0)}</td><td>${t.finalPredictions||0}</td><td>${t.retryCount||0}</td>
+      <td>${modeKo(t.completionMode)}</td><td>${sec(t.durationMs||0)}</td><td>${t.finalPredictions||0}</td><td>${t.retryCount||0}</td>
       <td>${t.candidateRepairs||0}</td><td>${t.manualFallbackUsed?"예":"아니오"}</td>
       <td>${ms1(t.meanInferenceLatencyMs)}</td>
     </tr>`).join("");
@@ -145,7 +165,7 @@ filesInput.addEventListener("change", async e => {
   for (const file of e.target.files || []) {
     try {
       const data = JSON.parse(await file.text());
-      if (data.format === "ieum-pilot-log-v1") nextLogs.push(data);
+      if (data.format === "ieum-pilot-log-v1" || data.format === "ieum-pilot-log-v2") nextLogs.push(data);
       else if (data.format === "ieum-pilot-survey-v1") nextSurveys.push(data);
       else throw new Error("지원하지 않는 JSON 형식");
     } catch (err) {
@@ -175,15 +195,16 @@ function downloadText(text, filename, type) {
 
 exportCsvBtn.addEventListener("click", () => {
   const rows = [[
-    "record_type","participant","task_id_or_item","success_or_score","duration_ms",
+    "record_type","participant","task_id_or_item","success_or_score","completion_mode","duration_ms",
     "final_predictions","retry_count","candidate_repairs","manual_fallback",
     "mean_inference_latency_ms","question"
   ]];
 
   for (const log of logs) {
-    for (const t of log.tasks || []) {
+    for (const raw of log.tasks || []) {
+      const t={...raw,completionMode:raw.completionMode||modeOf(raw)};
       rows.push([
-        "task",log.participant,t.id,t.success,t.durationMs,t.finalPredictions,t.retryCount,
+        "task",log.participant,t.id,t.success,t.completionMode,t.durationMs,t.finalPredictions,t.retryCount,
         t.candidateRepairs,t.manualFallbackUsed,t.meanInferenceLatencyMs,""
       ]);
     }
@@ -192,7 +213,7 @@ exportCsvBtn.addEventListener("click", () => {
   for (const survey of surveys) {
     for (const item of survey.scores || []) {
       rows.push([
-        "survey",survey.participant,item.item,item.score,"","","","","","",item.question
+        "survey",survey.participant,item.item,item.score,"","","","","","","",item.question
       ]);
     }
   }
