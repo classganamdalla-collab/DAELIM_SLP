@@ -64,6 +64,7 @@ def main() -> None:
         max_len=int(meta.get("max_sequence_length", 100)),
         min_frames=15,
         allowed_labels=labels,
+        feature_profile=str(meta.get("feature_profile") or "full"),
     )
 
     selected = [i for i, sid in enumerate(bundle.sample_ids) if sid in test_ids]
