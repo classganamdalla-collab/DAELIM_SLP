@@ -2,6 +2,8 @@ const runBtn = document.getElementById("runBtn");
 const statusEl = document.getElementById("status");
 const rowsEl = document.getElementById("rows");
 const parityEl = document.getElementById("parity");
+const downloadBtn = document.getElementById("downloadBtn");
+let latestReport = null;
 
 const TFJS_URL = "./model/tfjs_model/model.json";
 const ONNX_FP32_URL = "./model/onnx/sign_language_fp32.onnx";
@@ -64,6 +66,32 @@ function maxAbsDiff(a, b) {
   return { mean: sum / n, max };
 }
 
+function coarseDeviceInfo() {
+  return {
+    platform: navigator.userAgentData?.platform || navigator.platform || "unknown",
+    mobile: navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent),
+    hardwareConcurrency: navigator.hardwareConcurrency || null,
+    deviceMemoryGB: navigator.deviceMemory || null,
+    webgpuAvailable: Boolean(navigator.gpu),
+    viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio || 1 },
+  };
+}
+
+function downloadJson(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+downloadBtn.addEventListener("click", () => {
+  if (!latestReport) return;
+  downloadJson(latestReport, `ieum_benchmark_${Date.now()}.json`);
+});
+
 function argmax(a) {
   let bi = 0;
   for (let i = 1; i < a.length; i++) if (a[i] > a[bi]) bi = i;
@@ -107,6 +135,8 @@ async function benchmarkOrt(session, input) {
 
 runBtn.addEventListener("click", async () => {
   runBtn.disabled = true;
+  downloadBtn.disabled = true;
+  latestReport = null;
   rowsEl.innerHTML = "";
   parityEl.textContent = "-";
   try {
@@ -183,7 +213,7 @@ runBtn.addEventListener("click", async () => {
       `<tr><td>${name}</td><td>${Number(loadMs).toFixed(1)}</td><td>${s.mean.toFixed(2)}</td><td>${s.median.toFixed(2)}</td><td>${s.p95.toFixed(2)}</td><td>${bytesText(bytes)}</td></tr>`
     ).join("");
 
-    parityEl.textContent = JSON.stringify({
+    const parity = {
       tfjs_vs_onnx_fp32: {
         mean_abs_error: dTfFp.mean,
         max_abs_error: dTfFp.max,
@@ -200,8 +230,28 @@ runBtn.addEventListener("click", async () => {
         error: webgpuError,
       },
       note: "합성 입력의 수치 비교입니다. 실제 인식 정확도는 별도 파일럿/검증 데이터로 측정해야 합니다."
-    }, null, 2);
+    };
 
+    latestReport = {
+      format: "ieum-browser-benchmark-v1",
+      createdAt: new Date().toISOString(),
+      iterations: N,
+      warmup: WARMUP,
+      inputShape: SHAPE,
+      device: coarseDeviceInfo(),
+      engines: rows.map(([name, loadMs, s, bytes]) => ({
+        name,
+        loadMs: Number(loadMs),
+        latencyMeanMs: s.mean,
+        latencyMedianMs: s.median,
+        latencyP95Ms: s.p95,
+        modelBytes: Number.isFinite(bytes) ? bytes : null,
+      })),
+      parity,
+    };
+
+    parityEl.textContent = JSON.stringify(parity, null, 2);
+    downloadBtn.disabled = false;
     statusEl.textContent = " 완료";
   } catch (e) {
     console.error(e);
