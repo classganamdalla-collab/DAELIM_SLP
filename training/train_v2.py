@@ -19,7 +19,7 @@ import keras
 from keras import layers
 
 from dataset import DatasetBundle, load_dataset, split_dataset
-from features import V2_FEATURE_DIM, V2_SCHEMA_ID
+from features import V2_BASE8_SCHEMA_ID, V2_FEATURE_DIM, V2_SCHEMA_ID
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -373,6 +373,12 @@ def main() -> None:
     ap.add_argument("--bootstrap-samples", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=20261005)
     ap.add_argument("--no-augment", action="store_true")
+    ap.add_argument(
+        "--feature-profile",
+        choices=["full", "base8"],
+        default="full",
+        help="Use base8 for legacy 2.0-facemesh JSON without extended face/blendshape fields.",
+    )
     args = ap.parse_args()
 
     seed_everything(args.seed)
@@ -387,6 +393,7 @@ def main() -> None:
         max_len=100,
         min_frames=args.min_frames,
         allowed_labels=label_order,
+        feature_profile=args.feature_profile,
     )
 
     counts = Counter(bundle.y_labels)
@@ -557,8 +564,11 @@ def main() -> None:
         ),
     }
 
+    schema_id = V2_BASE8_SCHEMA_ID if args.feature_profile == "base8" else V2_SCHEMA_ID
+
     metrics = {
-        "feature_schema": V2_SCHEMA_ID,
+        "feature_schema": schema_id,
+        "feature_profile": args.feature_profile,
         "feature_dim": V2_FEATURE_DIM,
         "sequence_length": 100,
         "selected_model": best_name,
@@ -591,7 +601,8 @@ def main() -> None:
 
     metadata = {
         "schema_version": 2,
-        "feature_schema": V2_SCHEMA_ID,
+        "feature_schema": schema_id,
+        "feature_profile": args.feature_profile,
         "feature_dim": V2_FEATURE_DIM,
         "max_sequence_length": 100,
         "labels": kept_labels,
