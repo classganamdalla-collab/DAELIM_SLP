@@ -18,6 +18,7 @@ import {
 } from "./src/inference-engine.js";
 
 import { decodeCafeWords } from "./src/cafe-decoder.js";
+import { StudyLogger } from "./src/study-logger.js";
 
 const $ = id => document.getElementById(id);
 
@@ -57,6 +58,18 @@ const manualPanel = $("manualPanel");
 const manualCloseBtn = $("manualCloseBtn");
 const manualText = $("manualText");
 const manualSpeakBtn = $("manualSpeakBtn");
+const studyControls = $("studyControls");
+const studyParticipant = $("studyParticipant");
+const studyStartBtn = $("studyStartBtn");
+const studySuccessBtn = $("studySuccessBtn");
+const studyFailBtn = $("studyFailBtn");
+const studyExportBtn = $("studyExportBtn");
+
+const pageParams = new URLSearchParams(location.search);
+const studyLogger = new StudyLogger({
+  enabled: pageParams.get("study") === "1",
+  participant: pageParams.get("participant") || "P00",
+});
 
 const MIN_SCORE_SHOW = 0.70;
 const MIN_SCORE_LOCK = 0.75;
@@ -137,7 +150,7 @@ function renderLabelChips() {
 }
 
 async function loadModelStack() {
-  const preference = new URLSearchParams(location.search).get("engine") || "auto";
+  const preference = pageParams.get("engine") || "auto";
   datasetStatus.textContent = "AI 모델 로딩 중...";
   modelBadge.textContent = "AI 모델 로딩 중...";
 
@@ -397,7 +410,15 @@ function analyzeProbabilities(probs) {
 async function inferFrames(frames) {
   if (!inferenceEngine || frames.length < MIN_GESTURE_FRAMES) return null;
   const data = makeModelInput(frames);
+  const t0 = performance.now();
   const probs = await inferenceEngine.predict(data, [1, LIVE_BUFFER_MAX, featureDim]);
+  const latency = performance.now() - t0;
+  studyLogger.recordInferenceLatency(latency);
+  if (studyLogger.enabled && studyLogger.inferenceLatencies.length % 12 === 0) {
+    const recent = studyLogger.inferenceLatencies.slice(-12);
+    const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+    engineStatus.textContent = `${inferenceEngine.name} · ${featureMode === "v2" ? FEATURE_SCHEMAS.v2.id : FEATURE_SCHEMAS.v1.id} · ${avg.toFixed(1)}ms`;
+  }
   return analyzeProbabilities(probs);
 }
 
@@ -477,7 +498,10 @@ async function classifyGesture() {
     const result = await inferFrames(snapshot);
     gestureState = "cooldown";
 
-    if (!isDisplayable(result)) {
+    const accepted = isDisplayable(result);
+    studyLogger.recordFinalPrediction(result, accepted);
+
+    if (!accepted) {
       currentPrediction.textContent = "...";
       predictionScore.textContent = result
         ? `최고 ${(result.score * 100).toFixed(1)}% · 마진 ${(result.margin * 100).toFixed(1)}%`
@@ -486,7 +510,6 @@ async function classifyGesture() {
       holdBarFill.style.width = "0%";
       lastResult = null;
       showRepairCandidates(result?.candidates ?? []);
-      setTimeout(resetGesture, COOLDOWN_MS);
       return;
     }
 
@@ -536,6 +559,7 @@ function showRepairCandidates(candidates) {
     btn.className = "repair-btn";
     btn.textContent = `${displayName(candidate.label)} ${Math.round(candidate.score * 100)}%`;
     btn.addEventListener("click", () => {
+      studyLogger.recordCandidateRepair(candidate.label);
       addWordToSentence(candidate.label);
       lastResult = candidate;
       hideRepairCandidates();
@@ -632,7 +656,9 @@ function speakSentence() {
     return;
   }
   clearTimeout(autoSpeakTimer);
-  speakText(decodeCafeWords(sentenceWords));
+  const text = decodeCafeWords(sentenceWords);
+  studyLogger.recordSentenceSpoken("recognized", text.length);
+  speakText(text);
 }
 
 function scheduleAutoSpeak() {
@@ -757,6 +783,7 @@ clearSpeechBtn.addEventListener("click", () => {
 });
 
 function openManualPanel() {
+  studyLogger.recordManualFallback();
   manualPanel.classList.remove("hidden");
   setTimeout(() => manualText.focus(), 0);
 }
@@ -770,14 +797,54 @@ manualCloseBtn.addEventListener("click", closeManualPanel);
 manualPanel.addEventListener("click", e => {
   if (e.target === manualPanel) closeManualPanel();
 });
-manualSpeakBtn.addEventListener("click", () => speakText(manualText.value));
+manualSpeakBtn.addEventListener("click", () => {
+  const text = manualText.value.trim();
+  if (!text) return;
+  studyLogger.recordSentenceSpoken("manual", text.length);
+  speakText(text);
+});
 document.querySelectorAll(".quick-phrase").forEach(btn => {
   btn.addEventListener("click", () => {
     manualText.value = btn.textContent.trim();
   });
 });
 
+function initStudyControls() {
+  if (!studyLogger.enabled) return;
+  studyControls.classList.remove("hidden");
+  studyParticipant.textContent = `파일럿 · ${studyLogger.participant}`;
+
+  const setTaskActive = active => {
+    studyStartBtn.disabled = active;
+    studySuccessBtn.disabled = !active;
+    studyFailBtn.disabled = !active;
+  };
+
+  studyStartBtn.addEventListener("click", () => {
+    clearSentence();
+    hideRepairCandidates();
+    const id = studyLogger.startTask();
+    studyParticipant.textContent = `파일럿 · ${studyLogger.participant} · ${id}`;
+    setTaskActive(true);
+  });
+
+  studySuccessBtn.addEventListener("click", () => {
+    const task = studyLogger.finishTask(true);
+    studyParticipant.textContent = `파일럿 · ${studyLogger.participant} · ${task?.id ?? ""} 성공`;
+    setTaskActive(false);
+  });
+
+  studyFailBtn.addEventListener("click", () => {
+    const task = studyLogger.finishTask(false);
+    studyParticipant.textContent = `파일럿 · ${studyLogger.participant} · ${task?.id ?? ""} 실패`;
+    setTaskActive(false);
+  });
+
+  studyExportBtn.addEventListener("click", () => studyLogger.download());
+}
+
 async function preload() {
+  initStudyControls();
   try {
     await loadLabels();
     await loadModelStack();
