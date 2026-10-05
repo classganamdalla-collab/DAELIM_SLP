@@ -83,6 +83,7 @@ const LOCK_HOLD_MS = 700;
 let LIVE_BUFFER_MAX = 100;
 let featureDim = FEATURE_SCHEMAS.v1.featureDim;
 let featureMode = "v1";
+let v2FeatureProfile = "full";
 
 let handLandmarker = null;
 let faceLandmarker = null;
@@ -159,11 +160,14 @@ async function loadModelStack() {
   modelBadge.textContent = "AI 모델 로딩 중...";
 
   const v2Meta = await fetchJsonOptional("./model/v2/metadata.json");
-  if (v2Meta?.feature_schema === FEATURE_SCHEMAS.v2.id) {
+  if ([FEATURE_SCHEMAS.v2.id, FEATURE_SCHEMAS.v2Base8.id].includes(v2Meta?.feature_schema)) {
     try {
       inferenceEngine = await createV2Engine(preference);
       modelMeta = v2Meta;
       featureMode = "v2";
+      v2FeatureProfile = v2Meta.feature_profile || (
+        v2Meta.feature_schema === FEATURE_SCHEMAS.v2Base8.id ? "base8" : "full"
+      );
       featureDim = Number(v2Meta.feature_dim || FEATURE_SCHEMAS.v2.featureDim);
       LIVE_BUFFER_MAX = Number(v2Meta.max_sequence_length || 100);
       targetLabels = v2Meta.labels || [];
@@ -197,7 +201,7 @@ async function loadModelStack() {
   await validateEngineContract();
 
   datasetStatus.textContent = `AI 모델 준비 완료: ${inferenceEngine.name}`;
-  engineStatus.textContent = `${inferenceEngine.name} · ${featureMode === "v2" ? FEATURE_SCHEMAS.v2.id : FEATURE_SCHEMAS.v1.id}`;
+  engineStatus.textContent = `${inferenceEngine.name} · ${featureMode === "v2" ? (v2FeatureProfile === "base8" ? FEATURE_SCHEMAS.v2Base8.id : FEATURE_SCHEMAS.v2.id) : FEATURE_SCHEMAS.v1.id}`;
   modelBadge.textContent = `준비 완료 · ${inferenceEngine.name}`;
 }
 
@@ -321,7 +325,7 @@ function drawResults(handResults, faceResults) {
 
 function extractCurrentFrame(handResults, faceResults) {
   return featureMode === "v2"
-    ? extractV2FeaturesFromResults(handResults, faceResults)
+    ? extractV2FeaturesFromResults(handResults, faceResults, { profile: v2FeatureProfile })
     : extractV1FeaturesFromResults(handResults, faceResults);
 }
 
