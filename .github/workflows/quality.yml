@@ -36,12 +36,16 @@ jobs:
           node --check tests/feature_smoke.mjs
           node --check tests/feature_parity.mjs
           node --check tests/runtime_policy.mjs
+          node --check tests/motion_disambiguator.mjs
 
       - name: JavaScript feature and decoder smoke test
         run: node tests/feature_smoke.mjs
 
       - name: Runtime sampling and segmentation policy
         run: node tests/runtime_policy.mjs
+
+      - name: Motion disambiguator
+        run: node tests/motion_disambiguator.mjs
 
       - uses: actions/setup-python@v5
         with:
