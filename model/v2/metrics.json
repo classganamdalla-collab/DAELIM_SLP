@@ -1,0 +1,156 @@
+{
+  "feature_schema": "ieum_v2_base8_190",
+  "feature_profile": "base8",
+  "feature_dim": 190,
+  "sequence_length": 100,
+  "selected_model": "lstm",
+  "candidate_validation": {
+    "lstm": {
+      "val_accuracy": 1.0,
+      "val_macro_f1": 1.0,
+      "val_weighted_f1": 1.0,
+      "epochs_ran": 27,
+      "params": 216689
+    },
+    "gru": {
+      "val_accuracy": 1.0,
+      "val_macro_f1": 1.0,
+      "val_weighted_f1": 1.0,
+      "epochs_ran": 39,
+      "params": 134273
+    }
+  },
+  "test": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "weighted_f1": 1.0,
+    "confidence_intervals": {
+      "accuracy_95ci": {
+        "estimate": 1.0,
+        "low": 1.0,
+        "high": 1.0,
+        "samples": 1000
+      },
+      "macro_f1_95ci": {
+        "estimate": 1.0,
+        "low": 1.0,
+        "high": 1.0,
+        "samples": 1000
+      }
+    },
+    "rejection": {
+      "known_coverage": 1.0,
+      "selective_accuracy_known": 1.0,
+      "accepted_known_samples": 137,
+      "known_test_samples": 137,
+      "unknown_test_samples": 11,
+      "unknown_false_accept_rate": 0.0,
+      "unknown_rejection_rate": 1.0
+    }
+  },
+  "rejection_calibration": {
+    "min_score": 0.5,
+    "min_margin": 0.05,
+    "known_coverage": 1.0,
+    "selective_accuracy_known": 1.0,
+    "accepted_known_samples": 137,
+    "known_validation_samples": 137,
+    "unknown_validation_samples": 10,
+    "unknown_false_accept_rate": 0.0,
+    "selection_rule": "maximum known coverage with selective accuracy >= 0.95 and unknown FAR <= 0.05",
+    "target_selective_accuracy": 0.95,
+    "target_unknown_false_accept_rate": 0.05,
+    "coverage": 1.0,
+    "selective_accuracy": 1.0,
+    "accepted_samples": 137,
+    "validation_samples": 137
+  },
+  "split_strategy": "stratified-random-fallback",
+  "labels": [
+    "안녕하세요",
+    "아메리카노",
+    "뜨거운",
+    "아이스",
+    "2잔",
+    "주세요",
+    "제일",
+    "큰걸로",
+    "해주세요",
+    "테이크아웃",
+    "포인트",
+    "카드",
+    "영수증",
+    "감사합니다",
+    "와이파이",
+    "있나요",
+    "기타"
+  ],
+  "class_counts_before_filter": {
+    "아메리카노": 64,
+    "뜨거운": 70,
+    "아이스": 70,
+    "주세요": 70,
+    "제일": 50,
+    "큰걸로": 50,
+    "2잔": 50,
+    "해주세요": 65,
+    "테이크아웃": 59,
+    "포인트": 50,
+    "카드": 50,
+    "영수증": 50,
+    "감사합니다": 50,
+    "와이파이": 55,
+    "있나요": 45,
+    "기타": 70,
+    "안녕하세요": 65
+  },
+  "dropped_rare_classes": {},
+  "dataset_samples": 983,
+  "dataset_fingerprint_sha256": "9644f61ce103dbd6369cdb5b56102bb8093a9acfd70fffe3968ce4a75b739214",
+  "skipped_samples": [
+    {
+      "id": "dc4af402-4286-4ebb-867f-91d08230e874",
+      "reason": "too-short",
+      "frames": 2,
+      "source": "legacy_cafe_base8.json"
+    },
+    {
+      "id": "d9c2fd15-d2e6-4db8-973c-1dbdf344e222",
+      "reason": "too-short",
+      "frames": 2,
+      "source": "legacy_cafe_base8.json"
+    },
+    {
+      "id": "c8b47662-5d13-43fd-97f4-7ac6d870fdf2",
+      "reason": "too-short",
+      "frames": 2,
+      "source": "legacy_cafe_base8.json"
+    },
+    {
+      "id": "f368fde9-66c5-442b-99b2-b58304b7aaf8",
+      "reason": "too-short",
+      "frames": 2,
+      "source": "legacy_cafe_base8.json"
+    },
+    {
+      "id": "da5b6ab5-a7a7-42ad-87be-b5706e175a9d",
+      "reason": "too-short",
+      "frames": 4,
+      "source": "legacy_cafe_base8.json"
+    },
+    {
+      "id": "fa7d17df-7440-438e-9878-4f1f496c1359",
+      "reason": "too-short",
+      "frames": 2,
+      "source": "legacy_cafe_base8.json"
+    },
+    {
+      "id": "bee3a850-8f79-4a1c-9903-9aa73df012d0",
+      "reason": "too-short",
+      "frames": 4,
+      "source": "legacy_cafe_base8.json"
+    }
+  ],
+  "seed": 20261005,
+  "warning": "If split_strategy is stratified-random-fallback, performance can be optimistic when samples from the same signer/session appear in multiple splits. Prefer participant-group evaluation."
+}

@@ -1,0 +1,29 @@
+{
+  "format": "ieum-motion-pair-rule-v1",
+  "enabled": true,
+  "source_label": "아메리카노",
+  "target_label": "영수증",
+  "metric": "interhand_separation_gain",
+  "direction": "greater_is_target",
+  "threshold": 0.3226127028465271,
+  "training_balanced_accuracy": 0.9621875,
+  "training_source_specificity": 0.984375,
+  "training_target_recall": 0.94,
+  "samples": {
+    "아메리카노": 64,
+    "영수증": 50
+  },
+  "distribution": {
+    "아메리카노": {
+      "median": -0.0396672785282135,
+      "p10": -0.4355549693107605,
+      "p90": 0.24366632699966434
+    },
+    "영수증": {
+      "median": 0.7377033829689026,
+      "p10": 0.4326200008392334,
+      "p90": 0.9362145662307739
+    }
+  },
+  "note": "Deterministic pair repair calibrated from existing training sequences. It only overrides source_label -> target_label when the motion threshold is met."
+}

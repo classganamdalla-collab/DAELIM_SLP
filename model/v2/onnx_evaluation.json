@@ -1,0 +1,70 @@
+{
+  "purpose": "Held-out v2 test-set comparison of ONNX FP32 and Dynamic INT8.",
+  "test_samples": 148,
+  "labels": [
+    "안녕하세요",
+    "아메리카노",
+    "뜨거운",
+    "아이스",
+    "2잔",
+    "주세요",
+    "제일",
+    "큰걸로",
+    "해주세요",
+    "테이크아웃",
+    "포인트",
+    "카드",
+    "영수증",
+    "감사합니다",
+    "와이파이",
+    "있나요",
+    "기타"
+  ],
+  "split_strategy": "stratified-random-fallback",
+  "dataset_fingerprint_sha256": "9644f61ce103dbd6369cdb5b56102bb8093a9acfd70fffe3968ce4a75b739214",
+  "keras_reference": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0
+  },
+  "keras_vs_onnx_fp32": {
+    "accuracy_drop": 0.0,
+    "macro_f1_drop": 0.0,
+    "argmax_agreement": 1.0,
+    "mean_abs_output_error": 2.2369690544365994e-09,
+    "max_abs_output_error": 5.960464477539063e-08
+  },
+  "fp32": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "bytes": 900705,
+    "latency_cpu": {
+      "mean_ms": 3.1321500008925796,
+      "median_ms": 3.0693334992974997,
+      "p95_ms": 3.326728788670152,
+      "samples": 100
+    }
+  },
+  "int8": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "bytes": 282078,
+    "latency_cpu": {
+      "mean_ms": 4.672569191316143,
+      "median_ms": 3.224792017135769,
+      "p95_ms": 8.865691075334324,
+      "samples": 100
+    }
+  },
+  "int8_vs_fp32": {
+    "accuracy_drop": 0.0,
+    "macro_f1_drop": 0.0,
+    "argmax_agreement": 1.0,
+    "mean_abs_output_error": 4.7119388568717113e-07,
+    "max_abs_output_error": 1.9296305254101753e-05,
+    "size_reduction_percent": 68.682532016587
+  },
+  "fp32_conversion_gate_pass": true,
+  "int8_accuracy_gate_pass": true,
+  "decision_note": "Keras-to-ONNX conversion parity is reported separately. Passing the INT8 accuracy gate is necessary but not sufficient. Use browser benchmark results before selecting INT8 as the default web runtime.",
+  "onnxruntime_version": "1.30.0"
+}
