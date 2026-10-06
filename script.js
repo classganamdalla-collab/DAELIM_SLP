@@ -20,6 +20,7 @@ import {
 import { decodeCafeWords } from "./src/cafe-decoder.js";
 import { StudyLogger } from "./src/study-logger.js";
 import { getRuntimePolicy } from "./src/runtime-policy.js";
+import { applyMotionPairRule } from "./src/motion-disambiguator.js";
 
 const $ = id => document.getElementById(id);
 
@@ -91,6 +92,7 @@ let inferenceEngine = null;
 let modelMeta = null;
 let enginePreference = "auto";
 let runtimeFallbackUsed = false;
+let motionPairRule = null;
 
 let webcamRunning = false;
 let lastVideoTime = -1;
@@ -170,6 +172,7 @@ async function loadModelStack() {
       featureDim = Number(v2Meta.feature_dim || FEATURE_SCHEMAS.v2.featureDim);
       LIVE_BUFFER_MAX = Number(v2Meta.max_sequence_length || 100);
       targetLabels = v2Meta.labels || [];
+      motionPairRule = await fetchJsonOptional("./model/v2/motion_rules.json");
     } catch (e) {
       console.warn("v2 model detected but could not be loaded; falling back to v1", e);
     }
@@ -518,7 +521,8 @@ async function inferFrames(frames) {
     const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
     engineStatus.textContent = `${inferenceEngine.name} · ${featureMode === "v2" ? FEATURE_SCHEMAS.v2.id : FEATURE_SCHEMAS.v1.id} · ${avg.toFixed(1)}ms`;
   }
-  return analyzeProbabilities(probs);
+  const result = analyzeProbabilities(probs);
+  return applyMotionPairRule(result, frames, motionPairRule);
 }
 
 function isDisplayable(result) {
@@ -623,7 +627,8 @@ async function classifyGesture() {
     const word = displayName(result.label);
     currentPrediction.textContent = word;
     predictionScore.textContent =
-      `신뢰도 ${(result.score * 100).toFixed(1)}% · 마진 ${(result.margin * 100).toFixed(1)}%`;
+      `신뢰도 ${(result.score * 100).toFixed(1)}% · 마진 ${(result.margin * 100).toFixed(1)}%` +
+      (result.motionOverride ? " · 동작궤적 보정" : "");
     holdBarFill.style.width = "100%";
     lastResult = result;
 
