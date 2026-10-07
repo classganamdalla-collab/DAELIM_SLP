@@ -37,6 +37,7 @@ jobs:
           node --check tests/feature_parity.mjs
           node --check tests/runtime_policy.mjs
           node --check tests/motion_disambiguator.mjs
+          node --check tests/mobile_layout.mjs
 
       - name: JavaScript feature and decoder smoke test
         run: node tests/feature_smoke.mjs
@@ -46,6 +47,9 @@ jobs:
 
       - name: Motion disambiguator
         run: node tests/motion_disambiguator.mjs
+
+      - name: Mobile viewport and orientation safeguards
+        run: node tests/mobile_layout.mjs
 
       - uses: actions/setup-python@v5
         with:
