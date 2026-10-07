@@ -1,0 +1,88 @@
+{
+  "format": "ieum-motion-rules-v2",
+  "rules": [
+    {
+      "format": "ieum-motion-pair-rule-v1",
+      "enabled": true,
+      "source_label": "아메리카노",
+      "target_label": "영수증",
+      "metric": "interhand_separation_gain",
+      "direction": "greater_is_target",
+      "threshold": 0.3226127028465271,
+      "training_balanced_accuracy": 0.9621875,
+      "training_source_specificity": 0.984375,
+      "training_target_recall": 0.94,
+      "samples": {
+        "아메리카노": 64,
+        "영수증": 50
+      },
+      "distribution": {
+        "아메리카노": {
+          "median": -0.0396672785282135,
+          "p10": -0.4355549693107605,
+          "p90": 0.24366632699966434
+        },
+        "영수증": {
+          "median": 0.7377033829689026,
+          "p10": 0.4326200008392334,
+          "p90": 0.9362145662307739
+        }
+      },
+      "note": "Deterministic pair repair calibrated from existing training sequences. It only overrides source_label -> target_label when the motion threshold is met."
+    },
+    {
+      "enabled": true,
+      "source_label": "아메리카노",
+      "target_label": "뜨거운",
+      "metric": "hand_openness_mean",
+      "direction": "greater_is_target",
+      "threshold": 1.8618589411070057,
+      "training_balanced_accuracy": 1.0,
+      "training_source_specificity": 1.0,
+      "training_target_recall": 1.0,
+      "samples": {
+        "아메리카노": 64,
+        "뜨거운": 70
+      },
+      "distribution": {
+        "아메리카노": {
+          "median": 1.7973566000336323,
+          "p10": 1.756150454240031,
+          "p90": 1.8335815582661201
+        },
+        "뜨거운": {
+          "median": 1.9716504995142257,
+          "p10": 1.9233083292154802,
+          "p90": 1.998313050487488
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "source_label": "영수증",
+      "target_label": "뜨거운",
+      "metric": "wrist_downward_gain",
+      "direction": "less_is_target",
+      "threshold": -0.6724287271499634,
+      "training_balanced_accuracy": 1.0,
+      "training_source_specificity": 1.0,
+      "training_target_recall": 1.0,
+      "samples": {
+        "영수증": 50,
+        "뜨거운": 70
+      },
+      "distribution": {
+        "영수증": {
+          "median": -0.026854634284973145,
+          "p10": -0.3427332162857055,
+          "p90": 0.32298291921615613
+        },
+        "뜨거운": {
+          "median": -1.6207502782344818,
+          "p10": -2.0669939696788786,
+          "p90": -1.1802805662155151
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "purpose": "Numerical parity and runtime smoke test only; not recognition accuracy.",
+  "samples": 300,
+  "input_shape": [
+    1,
+    100,
+    90
+  ],
+  "fp32": {
+    "bytes": 695543,
+    "latency_ms_mean": 7.44874031666683,
+    "latency_ms_median": 7.015706999993654,
+    "latency_ms_p95": 9.955725999986953
+  },
+  "int8": {
+    "bytes": 237982,
+    "latency_ms_mean": 8.191149083333093,
+    "latency_ms_median": 7.778504999997438,
+    "latency_ms_p95": 10.746494000002826
+  },
+  "source_keras_vs_onnx_fp32": {
+    "mean_abs_output_error": 2.440375975455017e-08,
+    "max_abs_output_error": 4.291534423828125e-06,
+    "argmax_agreement_percent": 100.0
+  },
+  "int8_vs_fp32": {
+    "size_reduction_percent": 65.78471783915589,
+    "mean_abs_output_error": 0.0014968937041124756,
+    "max_abs_output_error": 0.4261278510093689,
+    "argmax_agreement_percent": 99.33333333333333
+  },
+  "onnxruntime_version": "1.30.0"
+}

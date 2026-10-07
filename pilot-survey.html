@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이음 파일럿 사용성 설문</title>
+  <style>
+    body{margin:0;background:#f6f8fb;color:#172033;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif}
+    main{max-width:760px;margin:34px auto;padding:0 18px 60px}
+    .card{background:#fff;border:1px solid #e5e9f0;border-radius:18px;padding:22px;margin:14px 0}
+    h1{margin-bottom:7px}.muted{color:#667085;line-height:1.65}
+    input,textarea{width:100%;box-sizing:border-box;border:1px solid #d0d5dd;border-radius:10px;padding:10px;font:inherit}
+    textarea{min-height:92px;resize:vertical}
+    .q{margin:20px 0}.q-title{font-weight:700;line-height:1.5;margin-bottom:9px}
+    .scale{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+    .scale label{border:1px solid #d0d5dd;border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer}
+    .scale input{width:auto}.scale small{display:block;color:#667085;margin-top:4px}
+    button{width:100%;border:0;border-radius:12px;padding:13px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}
+  </style>
+</head>
+<body>
+<main>
+  <h1>이음 파일럿 사용성 설문</h1>
+  <p class="muted">기능 사용 후 응답합니다. 실명 대신 파일럿에서 사용한 가명 코드(P01 등)를 입력하세요. 1점은 전혀 그렇지 않다, 5점은 매우 그렇다입니다.</p>
+  <div class="card">
+    <label>참여자 코드<input id="participant" value="P01" autocomplete="off"></label>
+  </div>
+  <form id="survey" class="card"></form>
+  <div class="card">
+    <label>가장 불편했던 점<textarea id="difficult"></textarea></label><br>
+    <label>가장 유용했던 기능<textarea id="useful"></textarea></label><br>
+    <label>개선했으면 하는 점<textarea id="improve"></textarea></label>
+  </div>
+  <button id="save">설문 JSON 저장</button>
+</main>
+<script type="module" src="pilot-survey.js"></script>
+</body>
+</html>

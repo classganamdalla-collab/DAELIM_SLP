@@ -1,0 +1,97 @@
+name: Build ONNX variants
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - contest-2026-onnx
+    paths:
+      - "model/sign_language_model.h5"
+      - "tools/convert_h5_to_onnx.py"
+      - "tools/quantize_onnx.py"
+      - "tools/validate_onnx.py"
+      - "requirements-onnx.txt"
+      - ".github/workflows/build-onnx.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-onnx-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  convert-quantize-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install conversion/runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-onnx.txt
+
+      - name: Show versions
+        run: |
+          python - <<'PY'
+          import keras, numpy, onnx, onnxruntime, tensorflow
+          import tf2onnx
+          print("tensorflow", tensorflow.__version__)
+          print("keras", keras.__version__)
+          print("tf2onnx", tf2onnx.__version__)
+          print("onnx", onnx.__version__)
+          print("onnxruntime", onnxruntime.__version__)
+          print("numpy", numpy.__version__)
+          PY
+
+      - name: Convert H5 to ONNX FP32
+        run: python tools/convert_h5_to_onnx.py
+
+      - name: Quantize ONNX to dynamic INT8
+        run: python tools/quantize_onnx.py
+
+      - name: Validate numerical parity and CPU latency
+        run: python tools/validate_onnx.py --samples 300
+
+      - name: Inspect generated files
+        run: |
+          ls -lh model/onnx
+          cat model/onnx/validation-report.json
+
+      - name: Commit generated ONNX artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add model/onnx/
+          if git diff --cached --quiet; then
+            echo "No ONNX artifact changes to commit."
+            exit 0
+          fi
+
+          git commit -m "build: generate ONNX FP32 and INT8 variants"
+
+          # Development commits may land while this relatively slow conversion job runs.
+          # Rebase the generated-artifact-only commit on the newest branch head before push.
+          for attempt in 1 2 3; do
+            git fetch origin "$GITHUB_REF_NAME"
+            if git rebase "origin/$GITHUB_REF_NAME"; then
+              if git push origin "HEAD:$GITHUB_REF_NAME"; then
+                exit 0
+              fi
+            else
+              git rebase --abort || true
+            fi
+            echo "Push attempt $attempt failed; retrying..."
+            sleep $((attempt * 2))
+          done
+
+          echo "Could not publish generated ONNX artifacts after 3 attempts."
+          exit 1

@@ -1,0 +1,8 @@
+tensorflow==2.20.0; platform_system == "Darwin" and python_version < "3.14"
+tensorflow-cpu==2.20.0; platform_system != "Darwin" and python_version < "3.14"
+keras>=3,<4
+numpy>=1.26,<3
+scikit-learn>=1.5,<2
+onnx>=1.16,<2
+onnxruntime>=1.20,<2
+git+https://github.com/onnx/tensorflow-onnx.git

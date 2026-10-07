@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이음 v2 모델 벤치마크</title>
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f6f8fb;color:#172033}
+    main{max-width:920px;margin:40px auto;padding:0 20px}
+    .card{background:#fff;border:1px solid #e5e9f0;border-radius:16px;padding:22px;margin:16px 0}
+    button,a.btn{border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+    button{border:0;background:#2563eb;color:#fff} button:disabled{opacity:.5;cursor:not-allowed}
+    a.btn{border:1px solid #d0d5dd;color:#344054;background:#fff}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{text-align:left;border-bottom:1px solid #edf0f4;padding:10px 8px}
+    pre{background:#f1f4f8;border-radius:8px;padding:14px;overflow:auto;white-space:pre-wrap}
+    .muted{color:#667085;line-height:1.6}
+  </style>
+</head>
+<body>
+<main>
+  <h1>이음 v2 ONNX 벤치마크</h1>
+  <p class="muted">실제 v2 학습 후 생성되는 FP32와 Dynamic INT8 ONNX 모델을 같은 190차원 합성 입력으로 비교합니다. 실제 수어 인식 정확도는 model/v2/onnx_evaluation.json의 held-out test 결과를 우선합니다.</p>
+  <div class="card">
+    <button id="runBtn">v2 벤치마크 실행</button>
+    <button id="downloadBtn" disabled>결과 JSON 저장</button>
+    <a class="btn" href="benchmark.html">v1 비교로</a>
+    <span id="status" class="muted"></span>
+  </div>
+  <div class="card">
+    <h2>결과</h2>
+    <table>
+      <thead><tr><th>엔진</th><th>로드 ms</th><th>평균 ms</th><th>중앙값 ms</th><th>p95 ms</th><th>모델 크기</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="6">아직 실행하지 않았습니다.</td></tr></tbody>
+    </table>
+    <h3>FP32 ↔ INT8 수치 일치성</h3>
+    <pre id="parity">-</pre>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/ort.min.js"></script>
+<script type="module" src="./benchmark-v2.js"></script>
+</body>
+</html>

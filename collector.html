@@ -3,43 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>수어 표본 수집기</title>
+  <title>이음 데이터 수집기</title>
   <link rel="stylesheet" href="collector.css" />
 </head>
 <body>
   <div class="app">
     <div class="sidebar">
       <div class="logo">
-        <span class="logo-icon">🤟</span>
+        <img src="assets/logo.png" alt="이음" style="width:42px;height:42px;object-fit:contain" />
         <div>
-          <div class="logo-title">수어 AAC</div>
-          <div class="logo-sub">표본 수집기</div>
+          <div class="logo-title">이음</div>
+          <div class="logo-sub">v2 데이터 수집기</div>
+        </div>
+      </div>
+
+      <div class="privacy-note">
+        실명은 입력하지 마세요. 참여자 코드는 P01, P02처럼 가명으로 기록합니다.
+        카메라 영상 자체는 저장하지 않고 랜드마크/표정 특징만 JSON으로 저장합니다.
+      </div>
+
+      <div class="section">
+        <div class="section-title">수집 세션</div>
+        <div class="field-row">
+          <input type="text" id="participantCode" class="note-input" value="P01" placeholder="참여자 코드 (예: P01)" />
+          <input type="text" id="sessionCode" class="note-input" value="S01" placeholder="세션 코드 (예: S01)" />
+        </div>
+        <div class="field-row">
+          <select id="dominantHand" class="note-input">
+            <option value="unknown">주사용손 미기록</option>
+            <option value="right">오른손</option>
+            <option value="left">왼손</option>
+            <option value="both">양손/해당없음</option>
+          </select>
+          <select id="environmentTag" class="note-input">
+            <option value="indoor-normal">실내 일반 조명</option>
+            <option value="indoor-bright">실내 밝은 조명</option>
+            <option value="indoor-dim">실내 어두운 조명</option>
+            <option value="other">기타 환경</option>
+          </select>
         </div>
       </div>
 
       <div class="section">
         <div class="section-title">상황</div>
         <div id="situationBadge" class="situation-badge">로딩 중...</div>
+        <div class="schema-badge">raw-landmarks-v3 → ieum_v2_190 학습 가능</div>
       </div>
 
       <div class="section">
         <div class="section-title">라벨 선택</div>
-        <div id="labelGrid" class="label-grid">
-          <!-- labels.json 에서 자동 생성 -->
-        </div>
+        <div id="labelGrid" class="label-grid"></div>
       </div>
 
       <div class="section">
         <div class="section-title">메모 (선택)</div>
-        <input type="text" id="sampleNote" class="note-input" placeholder="예: 앉은 자세 / 1회차" />
+        <input type="text" id="sampleNote" class="note-input" placeholder="예: 빠르게 / 멀리 / 왼쪽 각도" />
       </div>
 
       <div class="section">
         <div class="section-title">기록</div>
         <div class="btn-group">
-          <button id="startRecordBtn" class="btn btn-primary">● 기록 시작</button>
+          <button id="startRecordBtn" class="btn btn-primary">● 기록 대기</button>
           <button id="stopRecordBtn" class="btn btn-danger">■ 기록 종료</button>
-          <button id="autoRepeatBtn" class="btn btn-ghost">🔁 연속 모드 OFF</button>
+          <button id="autoRepeatBtn" class="btn btn-ghost">연속 모드 OFF</button>
         </div>
       </div>
 
@@ -55,11 +81,12 @@
       </div>
 
       <div class="stats-box">
-        <div id="cameraStatus"     class="stat-line">📷 카메라 준비 중...</div>
-        <div id="handStatus"       class="stat-line">✋ 손 감지 확인 중...</div>
-        <div id="recordStatus"     class="stat-line rec-idle">⏺ 대기 중</div>
+        <div id="cameraStatus" class="stat-line">📷 카메라 준비 중...</div>
+        <div id="handStatus" class="stat-line">✋ 손 감지 확인 중...</div>
+        <div id="recordStatus" class="stat-line rec-idle">⏺ 대기 중</div>
         <div id="frameCountStatus" class="stat-line">프레임: 0</div>
-        <div id="sampleCountStatus"class="stat-line">저장된 표본: 0개</div>
+        <div id="qualityStatus" class="stat-line">품질: -</div>
+        <div id="sampleCountStatus" class="stat-line">저장된 표본: 0개</div>
       </div>
     </div>
 
@@ -68,7 +95,7 @@
         <video id="webcam" autoplay playsinline muted></video>
         <canvas id="outputCanvas"></canvas>
         <div class="video-hud">
-          <div id="hudLabel"  class="hud-label">라벨 미선택</div>
+          <div id="hudLabel" class="hud-label">라벨 미선택</div>
           <div id="hudRecord" class="hud-record hidden">● REC</div>
         </div>
       </div>
@@ -78,9 +105,7 @@
           <span>저장된 표본</span>
           <div id="labelSummary" class="label-summary"></div>
         </div>
-        <div id="samplesList" class="samples-list">
-          아직 저장된 표본이 없습니다.
-        </div>
+        <div id="samplesList" class="samples-list">아직 저장된 표본이 없습니다.</div>
       </div>
     </div>
   </div>
