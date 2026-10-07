@@ -274,6 +274,41 @@ async function createLandmarkers() {
   drawingUtils = new DrawingUtils(canvasCtx);
 }
 
+function syncCameraSurface() {
+  if (!video.videoWidth || !video.videoHeight) return;
+  if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
+  if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
+}
+
+function resetTrackingAfterViewportChange() {
+  syncCameraSurface();
+  lastVideoTime = -1;
+  lastHandResults = null;
+  lastFaceResults = null;
+  latestHandCount = 0;
+  gestureBuffer = [];
+  noHandCount = 0;
+  liveInferCount = 0;
+  resetLock();
+
+  if (appStarted) {
+    gestureState = "waiting";
+    handStatus.textContent = "화면 회전 후 손 감지 확인 중...";
+    holdStatus.textContent = "손을 다시 카메라에 보여주세요";
+    holdBarFill.style.width = "0%";
+  }
+}
+
+let viewportSyncTimer = null;
+function scheduleViewportSync() {
+  clearTimeout(viewportSyncTimer);
+  viewportSyncTimer = setTimeout(resetTrackingAfterViewportChange, 250);
+}
+
+window.addEventListener("resize", scheduleViewportSync, { passive: true });
+window.addEventListener("orientationchange", scheduleViewportSync, { passive: true });
+screen.orientation?.addEventListener?.("change", scheduleViewportSync);
+
 async function setupCamera() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -283,8 +318,7 @@ async function setupCamera() {
     video.srcObject = stream;
     await new Promise(resolve => { video.onloadedmetadata = resolve; });
     await video.play();
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    syncCameraSurface();
     webcamRunning = true;
     cameraStatus.textContent = "카메라 연결 완료";
   } catch (e) {
