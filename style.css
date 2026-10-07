@@ -26,18 +26,37 @@ html, body {
   color: var(--navy);
 }
 
-.app { position: relative; width: 100vw; height: 100vh; }
+html { height: 100%; height: 100dvh; }
+body { min-height: 100%; min-height: 100dvh; }
+
+.app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+}
 
 /* ── 시작 화면 ── */
 .start-screen {
   position: fixed; inset: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(150deg, #F7FAFC 0%, #EAF5FF 45%, #E5FAF7 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
   z-index: 200;
 }
 .start-content {
+  width: min(560px, 100%);
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -86,7 +105,9 @@ html, body {
 /* ── 메인 앱 ── */
 .main-app {
   position: relative;
-  width: 100vw; height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -822,4 +843,109 @@ input:focus-visible {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+
+/* ── 모바일 뷰포트 / 회전 안정화 ── */
+@media (max-width: 600px) {
+  .start-screen {
+    align-items: flex-start;
+  }
+  .start-content {
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .start-logo-img { width: 108px; }
+  .start-tagline { font-size: 14px; }
+  .start-description {
+    padding: 0 8px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .start-model-badge {
+    margin-top: 2px;
+    font-size: 10px;
+  }
+  .launch-btn {
+    margin-top: 8px;
+    padding: 13px 42px;
+  }
+  .start-links {
+    margin-top: 4px;
+  }
+
+  .top-hud {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+  }
+  .bottom-area {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+  }
+}
+
+/* 짧은 세로 공간(가로모드 포함)에서는 핵심 조작만 남긴다. */
+@media (max-height: 520px) {
+  .start-screen {
+    align-items: flex-start;
+  }
+  .start-content {
+    gap: 7px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .start-logo-img { width: 72px; margin-bottom: 0; }
+  .start-tagline { font-size: 12px; }
+  .start-description {
+    max-width: 460px;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+  .start-model-badge {
+    margin-top: 0;
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+  .launch-btn {
+    margin-top: 4px;
+    padding: 10px 34px;
+    font-size: 14px;
+  }
+  .start-notice { font-size: 10px; }
+  .start-links {
+    margin-top: 2px;
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .right-panel {
+    top: 54px;
+    right: max(8px, env(safe-area-inset-right));
+    bottom: auto;
+    left: auto;
+    width: min(190px, 34vw);
+    flex-direction: column;
+  }
+  .right-panel .status-block { display: none; }
+  .right-panel .panel-block { padding: 8px 10px; }
+  .big-word { font-size: 28px; min-height: 32px; }
+  .score-text, .hold-text { font-size: 9px; }
+
+  .bottom-area {
+    bottom: max(6px, env(safe-area-inset-bottom));
+  }
+  .bottom-bar {
+    min-height: 50px;
+    padding: 8px 10px;
+  }
+  .start-fab {
+    width: 50px;
+    height: 50px;
+  }
+  .sentence-chip { font-size: 14px; }
+  .sentence-empty { font-size: 12px; }
+
+  .speech-panel { display: none; }
 }
